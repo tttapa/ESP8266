@@ -185,7 +185,7 @@ TX1</td>
 
 <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">3.3V (boot only)</td>
 
-<td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Don't connect to ground at boot time  
+<td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Don't connect to ground at boot time  <br>  
 Sends debug data at boot time</td>
 
 </tr>
@@ -234,7 +234,7 @@ Sends debug data at boot time</td>
 
 <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
 
-<td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Not usable, and not broken out  
+<td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Not usable, and not broken out
 </td>
 
 </tr>
@@ -295,7 +295,7 @@ Sends debug data at boot time</td>
 
 <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
 
-<td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">No pull-up resistor, but pull-down instead  
+<td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">No pull-up resistor, but pull-down instead  <br>  
 Should be connected to RST to wake up</td>
 
 </tr>
@@ -316,14 +316,14 @@ Just like with a regular Arduino, you can set the function of a pin using `pinMo
 
 (*) NodeMCU uses a different pin mapping, read more [here](https://github.com/esp8266/Arduino/blob/master/doc/boards.md#nodemcu-09). To address a pin, e.g. pin 5, use D5: for instance: `pinMode(D5, OUTPUT);`
 
-To set an output pin high (3.3V) or low (0V), use `digitalWrite(pin, value);` where  `pin` is the digital pin, and `value` either 1 or 0 (or` `HIGH` and` `LOW`).
+To set an output pin high (3.3V) or low (0V), use `digitalWrite(pin, value);` where  `pin` is the digital pin, and `value` either 1 or 0 (or `HIGH` and `LOW`).
 
 
 To read an input, use `digitalRead(pin);`
 
 To enable PWM on a certain pin, use `analogWrite(pin, value);` where  `pin` is the digital pin, and `value` a number between 0 and 1023.
 
-You can change the range (bit depth) of the PWM output by using `analogWriteRange(new_range);
+You can change the range (bit depth) of the PWM output by using `analogWriteRange(new_range);`
 
 The frequency can be changed by using `analogWriteFreq(new_frequency);`. `new_frequency` should be between 100 and 1000Hz.
 

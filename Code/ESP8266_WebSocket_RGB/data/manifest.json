@@ -1,0 +1,11 @@
+{
+ "name": "LED Control",
+ "icons": [
+  {
+   "src": "\/favicon-144x144.png",
+   "sizes": "144x144",
+   "type": "image\/png",
+   "density": "3.0"
+  }
+ ]
+}

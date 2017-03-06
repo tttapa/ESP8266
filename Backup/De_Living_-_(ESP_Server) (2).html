@@ -12,11 +12,11 @@
    </div>
    <h3>Web servers</h3>
    <div>
-        A web server is an Internet-connected device that stores and serves files. Clients can request such a file, and the server will then send the right data/files back to the client. Requests are made using HTTP.&nbsp;
+        A web server is an Internet-connected device that stores and serves files. Clients can request such a file or another piece of data, and the server will then send the right data/files back to the client. Requests are made using HTTP.&nbsp;
    </div>
    <h3>HTTP</h3>
    <div>
-        HTTP or the Hypertext Transfer Protocol is a text-based protocol used to communicate with (web) servers. There are many HTTP requests methods, but I'll only cover the two most widely used ones: GET and POST.&nbsp;
+        HTTP or the Hypertext Transfer Protocol is the text-based protocol used to communicate with (web) servers. There are multiple HTTP request methods, but I'll only cover the two most widely used ones: GET and POST.&nbsp;
    </div>
    <h3>HTTP GET</h3>
    <div>
@@ -100,30 +100,19 @@ Accept-Language: en-US,en;q=0.8</code></pre>
 Host: www.example.com
 Connection: keep-alive
 Content-Length: 480
-Cache-Control: max-age=0
 Origin: http://www.example.com
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryQNEJOasMvgAOg8Kt
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
-DNT: 1
-Referer: http://www.example.com/login.php
-Accept-Encoding: gzip, deflate, br
-Accept-Language: en-US,en;q=0.8
-Cookie: PHPSESSID=ujfu5vefd56f8qb7j1nkqapps4</code></pre>
+...</code></pre>
            </div>
            <div>
                 Again, the only things we're interested in are the two first lines.
            </div>
            <div>
                 As you can see, the <b>request line </b>now has the POST method in it, and is still followed by a URI, /login.php, and the HTTP version, 1.1. The <b>host header</b> still contains just the domain name.
-           </div>
-           <div>
-                <br>
-           </div>
+           </div><div><br></div>
            <div>
                 The real difference is the <b>request body</b>: a GET request has no payload, while you can add a lot of data to the body of a POST request. This data could be normal key-value pairs, like a username and a password, or actual files that are being uploaded.
-           </div>
+<br></div><div><div>Also note the&nbsp;Content-Type header: it tells the server what kind of data can be found in the body of the POST request.</div></div>
            <div>
                 <br>
            </div>
@@ -153,22 +142,14 @@ Content-Disposition: form-data; name="token"
                     <br>
                </div>
                <div>
-                    You could also use the same syntax we used when adding parameters to a GET request:
+                    You could also use the same syntax we used before when adding parameters to a GET request:
                </div>
                <div>
                    <pre><code>POST /add-user.php HTTP/1.1
 Host: www.example.com
-Connection: keep-alive
 Content-Length: 27
-Cache-Control: max-age=0
-Origin: null
-Upgrade-Insecure-Requests: 1
-User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36
 Content-Type: application/x-www-form-urlencoded
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
-DNT: 1
-Accept-Encoding: gzip, deflate
-Accept-Language: en-US,en;q=0.8</code></pre>
+...</code></pre>
                </div>
                <div>
                     And the payload:
@@ -241,7 +222,7 @@ Accept-Language: en-US,en;q=0.8</code></pre>
                    <li><a href="http://stackoverflow.com/questions/176264/what-is-the-difference-between-a-uri-a-url-and-a-urn">http://stackoverflow.com/questions/176264/what-is-the-difference-between-a-uri-a-url-and-a-urn</a><br>
                     </li>
                    <li><a href="https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html">https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html</a><br>
-                    </li>
+                    </li><li><a href="https://en.wikipedia.org/wiki/List_of_HTTP_status_codes">https://en.wikipedia.org/wiki/List_of_HTTP_status_codes</a><br></li>
                </ul>
            </div>
            <div>

@@ -1,7 +1,7 @@
 
    <h2>Wi-Fi</h2>
    <div>
-        Using the ESP8266 as a simple microcontroller is great, but the reason why most people use it, is its WiFi capabilities. In this chapter, we'll dive into the wonderful world of network protocols, like Wi-Fi, TCP, UDP, HTTP, DNS ... All these acronyms might intimidate you, but I'll try my best to explain them step-by-step and in an easy way.
+        Using the ESP8266 as a simple microcontroller is great, but the reason why most people use it, is its Wi-Fi capabilities. In this chapter, we'll dive into the wonderful world of network protocols, like Wi-Fi, TCP, UDP, HTTP, DNS ... All these acronyms might intimidate you, but I'll try my best to explain them step-by-step and in an easy way.
    </div>
    <div>
         <br>
@@ -59,18 +59,19 @@
    </div>
    <div>
        <ol>
-           <li>The ESP8266 connects to a wireless access point (WAP or simply AP). The AP can be built-in to your modem or router, for example. In this configuration, the ESP acts like a wireless <b>station.</b>&nbsp;</li>
+           <li>The ESP8266 connects to a wireless access point (WAP or simply AP). The AP can be built-in to your modem or router, for example. <br>
+           In this configuration, the ESP acts like a wireless <b>station.</b>&nbsp;</li>
            <li>The ESP8266 acts as an <b>access point </b>and wireless stations can connect to it. These stations could be your laptop, a smartphone, or even another ESP in station mode.</li>
        </ol>
        <div>
-            Once the Wi-Fi link is established, the ESP8266 is part of a local area network (LAN). All devices on a LAN can communicate with each other.
+            Once the Wi-Fi link is established, the ESP8266 is part of a <b>local area network</b> (LAN). All devices on a LAN can communicate with each other.
        </div>
        <div>
             <span style="font-size: 1em;">Most of the time, the AP is connected to a physical Ethernet network as well, this means that the ESP8266 can also communicate with devices that are connected to the AP (modem/router) via a wired Ethernet connection (desktop computers, gaming consoles and set-top boxes, for instance).</span>
        </div>
    </div>
    <div>
-        <span style="font-size: 1em;">If the ESP8266 is in station mode, it can communicate with any station that is connected to it, and two devices (e.g. a laptop and a smartphone) can also communicate with each other.</span>
+        <span style="font-size: 1em;">If the ESP8266 is in station mode, it can communicate with any station that is connected to it, and two stations (e.g. a laptop and a smartphone) can also communicate with each other.</span>
    </div>
    <div>
         <span style="font-size: 1em;"><br>
@@ -103,7 +104,7 @@
         <br>
    </div>
    <div>
-        There are two versions of the Internet Protocol: IPv4 and IPv6. IPv6 just has much more addresses than IPv4 (because there are much more devices than available IPv4 addresses). The concept is exactly the same, however. In this article, we'll only talk about IPv4 addresses, since most LANs still use them.
+        There are two versions of the Internet Protocol: IPv4 and IPv6. IPv6 is an improved version of IPv4 and has much more addresses than IPv4 (because there are much more devices than available IPv4 addresses).<span style="font-size: 1em;">&nbsp;In this article, we'll only talk about IPv4 addresses, since most LANs still use them.</span>
    </div>
    <div>
         <br>
@@ -122,7 +123,7 @@
    </div>
    <h4><i>Sub-net mask <span style="font-weight: normal;">(optional)</span></i></h4>
    <div>
-        <i>This subdivision of the IP address is determined by the sub-net mask, often written as 255.255.255.0. You can see that it consists of four numbers, just like the IP address. If a number of the sub-net mask is 255, it means that the corresponding number of the IP address is part of the network address, if it's 0, the corresponding IP number is part of the address of the specific address. A different notation to "IP: 192.168.1.5, sub-net mask: 255.255.255.0" would be "192.168.1.5/24", because the binary representation of the sub-net mask is 11111111.11111111.11111111.00000000, and it has 24 ones.</i>
+        <i>This subdivision of the IP address is determined by the sub-net mask, often written as 255.255.255.0. You can see that it consists of four numbers, just like the IP address. If a part of the sub-net mask is 255, it means that the corresponding part of the IP address is part of the network address, if it's 0, the corresponding IP part is part of the address of the specific address. A different notation to "IP: 192.168.1.5, sub-net mask: 255.255.255.0" would be "192.168.1.5/24", because the binary representation of the sub-net mask is 11111111.11111111.11111111.00000000, and it has 24 ones.</i>
    </div>
    <div>
         <i>If you want to know more about sub-nets, I'd recommend you to read the <a href="https://en.wikipedia.org/wiki/IPv4_subnetting_reference">Wikipedia article</a>.&nbsp;</i>
@@ -159,10 +160,10 @@
    </div>
    <h3>The Transport layer</h3>
    <div>
-        The different devices in the network do their best to deliver these IP packets to the addressee, however, it's not uncommon for a packet to get lost, so it will never arrives. Or the packet might get corrupted on the way: the data is no longer correct. IP also can't guarantee that the packets arrive in the same order they were sent in.
+        The different devices in the network do their best to deliver these IP packets to the addressee, however, it's not uncommon for a packet to get lost, so it will never arrive. Or the packet might get corrupted on the way: the data is no longer correct. IP also can't guarantee that the packets arrive in the same order they were sent in.
    </div>
    <div>
-        This means that we can't <i>reliably </i>send messages yet, by only using the link and the Internet layer, since we can never know when and whether a packet will arrive, or know for certain that a received packet is correct.<br>
+        This means that we can't <i>reliably </i>send messages yet by only using the link and the Internet layer, since we can never know when and whether a packet will arrive, or know for certain that a received packet is correct.<br>
         We need a third layer on top of the Internet layer: the Transport layer.
    </div>
    <div>
@@ -177,7 +178,7 @@
            <li><b>UDP</b> on the other hand, doesn't guarantee that every packet reaches its destination, it does <b>check for errors</b> however, but when it finds one, it just destroys the packet, without re-sending it. This means that it's <b>not as reliable as TCP</b>, but it's faster, and has a much <b>lower latency</b>, because it doesn't require an open connection to send messages, like TCP does. That's why it's used in voice and video chats, and for example in online games.</li>
        </ul>
        <div>
-            If you want to know more about the differences between TCP and UDP, check out <a href="https://www.youtube.com/watch?v=Vdc8TCESIg8">this video</a>.
+           <i> If you want to know more about the differences between TCP and UDP, check out <a href="https://www.youtube.com/watch?v=Vdc8TCESIg8">this video</a>. </i>
        </div>
        <h4>TL;DR</h4>
        <div>
@@ -200,10 +201,10 @@
         </h4>
    </div>
    <div>
-        The HyperText Transfer Protocol, or HTTP, is the protocol (cfr. language) that is used by both web servers and web clients in order to communicate. It uses text to perform multiple operations.
+        The HyperText Transfer Protocol, or HTTP, is the protocol (cfr. language) that is used by both web servers and web clients in order to communicate. It uses text to perform send requests and responses from the client to the server and back again.
    </div>
    <div>
-        For example, when you type <a href="http://www.google.com">http://www.google.com</a>&nbsp;into the address bar of a web browser (client), it will send an HTTP GET request to the Google web server. The server understands this HTTP request, and will send the Google webpage as a response. Or when you upload an image to Instagram, your browser sends an HTTP POST request with your selfie attached to the Instagram server. The server understands the request, &nbsp;saves the image into the database, sends the URL of the new image back to your browser, and the browser will add the image on the webpage.
+        For example, when you type <a href="http://www.google.com">http://www.google.com</a>&nbsp;into the address bar of a web browser (client), it will send an HTTP GET request to the Google web server. The server understands this HTTP request, and will send the Google webpage as a response. Or when you upload an image to Instagram, your browser sends an HTTP POST request with your selfie attached to the Instagram server. The server understands the request, saves the image and adds it into the database, sends the URL of the new image back to your browser, and the browser will add the image on the webpage.
    </div>
    <div>
         As you can see, neither the client nor the server has to worry about the integrity of the messages they send, and they know that the recipient understands their language, and that it will know what to do with a certain HTTP request.&nbsp;
@@ -213,7 +214,7 @@
    </div>
    <h4>WebSocket</h4>
    <div>
-        HTTP is great for things like downloading webpages, uploading photos etc. but it's quite slow: every time you send an HTTP request, you have to start a new TCP connection to the server, then send your request, wait for the server to respond, and download the response. Wouldn't it be great if we didn't have to open a new connection every time we want to send some data, and if we could send and receive data at the same time? That's where WebSocket comes to the rescue: you can keep the TCP connection with the server open at all times, you get perfect TCP reliability, and it's really fast.
+        HTTP is great for things like downloading webpages, uploading photos etc. but it's quite slow: every time you send an HTTP request, you have to start a new TCP connection to the server, then send your request, wait for the server to respond, and download the response. Wouldn't it be great if we didn't have to open a new connection every time we want to send some data, and if we could send and receive data at the same time at any moment we'd like? That's where WebSocket comes to the rescue: you can keep the TCP connection with the server open at all times, you get perfect TCP reliability, and it's pretty fast.
    </div>
    <h4>Open Sound Control</h4>
    <div>

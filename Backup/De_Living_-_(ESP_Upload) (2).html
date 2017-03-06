@@ -12,6 +12,13 @@
    </div>
    <h3>Auto-reset</h3>
    <div>
+        <i>This only applies to boards without an on-board USB-to-Serial converter.</i>
+   </div>
+   <div>
+        <i><br>
+        </i>
+   </div>
+   <div>
         If the USB-to-Serial converter you're using has a DTR flow control line, you can automate the reset signal. When sending data to the ESP, the DTR line goes low, and stays low for some time. To reset the ESP, we need a low pulse on the RST pin. The problem is that the DTR pin <i>stays </i>low. To solve this, we're going to build a crude edge detector circuit, using a capacitor. Take a look at the following schematic:
    </div>
    <div>
@@ -36,7 +43,7 @@
         <br>
    </div>
    <div>
-        One glance at this MATLAB simulation shows us the problem even beter:
+        One glance at this MATLAB simulation shows us the problem even better:
    </div>
    <div>
         <br>
@@ -81,7 +88,7 @@
             <br>
        </div>
        <div>
-            This circuit is also used in the Arduino Uno, for example.
+            This exact circuit is also used in the Arduino Uno, for example.
        </div>
        <div>
             <br>
@@ -90,9 +97,16 @@
             <b>Note</b>: if you followed the instructions in the hardware step correctly, you should already have added R2 to your ESP.
        </div>
        <h4>How to use Auto-reset</h4>
-        To use this auto-reset circuit, connect it to the DTR line of your USB-to-Serial converter, and to the reset line of the ESP, as shown in the diagram. Then click compile (just because the first compilation can take quite some time). Go to Tools &gt; Reset When it's compiled, hold down the program button we added in the hardware step, and click upload. Wait for it to say "Uploading..." and then release the program button.
+        To use this auto-reset circuit, connect it to the DTR line of your USB-to-Serial converter, and to the reset line of the ESP, as shown in the diagram. Then click compile (just because the first compilation can take quite some time). Go to Tools &gt; Reset and select 'ck'. When it's done compiling, hold down the program button we added in the hardware step, and click upload. Wait for it to say "Uploading..." and then release the program button.
    </div>
    <h3>Auto-reset and Auto-program</h3>
+   <div>
+        <i>This only applies to boards without an on-board USB-to-Serial converter.</i><br>
+   </div>
+   <div>
+        <i><br>
+        </i>
+   </div>
    <div>
         The method above still requires you to press a button to upload a new sketch. If your USB-to-Serial converter has a RTS line as well as a DTR line, you can automate the entire process.
    </div>
@@ -120,6 +134,12 @@
         <br>
    </div>
    <h3>Manual reset and manual program</h3>
+   <div>
+       <i>This only applies to boards without an on-board USB-to-Serial converter.</i><br>
+   </div>
+   <div>
+       <br>
+   </div>
    <div>
         If you don't have a USB-to-Serial converter with DTR and RTS lines, you could also just use the reset and program buttons we added in the hardware chapter. To get the ESP in program mode, GPIO0 must be low while booting:&nbsp;
    </div>

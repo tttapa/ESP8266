@@ -4,7 +4,7 @@
    <h3><span style="font-size: 1em;">Temperature logger</span></h3>
    <div>
        <div>
-            In the following example, we'll use a DS18S20 temperature sensor to plot the temperature over time. It's displayed in a graph in the browser.
+            In the following example, we'll use a DS18S20 temperature sensor to log the temperature over time and save it to the SPIFFS. It can then be displayed in a graph in the browser.
        </div>
    </div>
    <h4>Installing libraries</h4>
@@ -54,7 +54,7 @@
 <span style="color: #00979c;">byte</span> <span style="color: #000000;">packetBuffer</span><span style="color: #000000;">[</span> <span style="color: #000000;">NTP_PACKET_SIZE</span><span style="color: #000000;">]</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// A buffer to hold incoming and outgoing packets</span></code></pre>
    </div>
    <div>
-        The only new thing here are the OneWire and DallasTemperature libraries, to get the temperature from our sensor.<br>
+        The only new things here are the OneWire and DallasTemperature libraries, to get the temperature from the sensor.<br>
    </div>
    <h4> Setup</h4>
    <div>
@@ -92,7 +92,7 @@
 <span style="color: #000000;">}</span></code></pre>
    </div>
    <div>
-        In the setup, there's not much new either, we just start the temperature sensor, and check if we can communicate with it. If no temperature sensor is found, the ESP resets. <br>
+        In the setup, there's not much new either, we just start the temperature sensor, and check if we can communicate with it. If no temperature sensor is found, the ESP resets.&nbsp;</div><div><br>
         Getting the temperature from the sensor may take some time (up to 750ms). We don't want our loop to take longer than a couple of milliseconds, so we can't wait 750ms. If we did, the HTTP server etc. would start to misbehave. <br>
         The solution is to request the temperature first. The sensor will then start reading the analog temperature, and stores it in its memory. In the meantime, the loop just keeps on running, the server refreshes etc. After 750ms, we contact the sensor again, and read the temperature from its memory.<br>
         To tell the library that we don't want to wait for the analog to digital conversion of the sensor, we use setWaitForConversion.<br>

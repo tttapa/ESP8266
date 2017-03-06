@@ -50,7 +50,7 @@
    <div>
         Don't believe me? I'll prove it to you: open the Serial monitor (CTRL+SHIFT+M) and upload the sketch. You should see something like this:
    </div>
-   <pre><code>Connecting to Your_Wi-Fi_Network ...
+   <pre><code>Connecting to SSID ...
 1 2 3 4 5 6 ...
 
 Connection established!
@@ -71,7 +71,7 @@ IP address: 192.168.1.3</code></pre>
        <pre>ping</pre>
         , and then the IP address you received in the Serial monitor. If you're on Mac or Linux, use
        <pre>CTRL+C</pre>
-        to stop it after a couple of lines. It should look something like this:
+        to stop it after a couple of lines. The output should look something like this:
    </div>
    <div>
        <pre style="background: #300A24; color: white"><code><span style="color: lawngreen; font-weight: bold">user@computername</span>:<span style="color: cornflowerblue; font-weight: bold">~</span>$ ping 192.168.1.3
@@ -109,7 +109,7 @@ rtt min/avg/max/mdev = 6.384/40.463/94.047/32.588 ms</code></pre>
         <br>
    </div>
    <div>
-        Ping is a great tool to check if the ESP (or any device really) is still connected to the network, and if it's still working fine.
+        Ping is a great tool to check if the ESP (or any device, really) is still connected to the network, and if it's still working fine.
    </div>
    <div>
         One drawback is that IP addresses can change over time, but that's a problem we'll address in one of the following chapters ...
@@ -153,7 +153,7 @@ rtt min/avg/max/mdev = 6.384/40.463/94.047/32.588 ms</code></pre>
         The sketch above might be enough for your specific application, but if you need to be able to connect to multiple Wi-Fi networks, for example the Wi-Fi at home and the Wi-Fi at the office, it won't work.&nbsp;
    </div>
    <div>
-        To solve this problem, use the Wi-Fi-Multi library: You can add as many networks as you like, and it automatically connects to the one with the strongest signal.
+        To solve this problem, we'll use the Wi-Fi-Multi library: You can add as many networks as you like, and it automatically connects to the one with the strongest signal.
    </div>
    <div>
         <br>
@@ -177,7 +177,7 @@ rtt min/avg/max/mdev = 6.384/40.463/94.047/32.588 ms</code></pre>
  &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
  &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect: scan for Wi-Fi networks, and connect to the strongest of the networks above</span>
  &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">1000</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
- &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #434f54;">++</span><span style="color: #000000;">i</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">' '</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">'.'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
  &nbsp;<span style="color: #000000;">}</span>
  &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
  &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
@@ -194,7 +194,7 @@ rtt min/avg/max/mdev = 6.384/40.463/94.047/32.588 ms</code></pre>
    </div>
    <h3>Access Point mode</h3>
    <div>
-        To configure the ESP85266 as an access point, to allow other devices like smartphones or laptops to connect to it, you can use the softAP function:
+        To configure the ESP8266 as an access point, to allow other devices like smartphones or laptops to connect to it, you can use the softAP function:
    </div>
    <div>
        <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Include the Wi-Fi library</span>
@@ -229,12 +229,12 @@ rtt min/avg/max/mdev = 6.384/40.463/94.047/32.588 ms</code></pre>
         <br>
    </div>
    <div>
-        However, if you try to go to an online website, you'll get a timeout or a DNS error. This is because the ESP itself is not connected to the internet. The computer and the ESP8266 are on a separate network, and it's not connected to other networks, so there's no way for a packet on this network to get to the Internet.
+        However, if you try to go to an online website, you'll get a timeout or a DNS error. This is because the ESP itself is not connected to the internet. The sub-net that consists of the ESP and the computer is not connected to any other networks, so there's no way for a packet on this network to make it to the Internet.
    </div>
    <div>
         <br>
    </div>
    <div>
-        If you connected a second station to the ESP access point on the other hand, you would be able from one station to the other without problems, because they're on the same network.
+        If you connected a second station to the ESP access point on the other hand, you would be able to ping from one station to the other without problems, because they're on the same network.
    </div>
     

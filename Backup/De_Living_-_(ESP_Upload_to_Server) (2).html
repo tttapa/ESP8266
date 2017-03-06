@@ -8,7 +8,7 @@
    </div>
    <h3>Client: HTML form</h3>
    <div>
-        The easiest way to upload files is by using an HTML form, just like in the first server examples, where we used forms to turn on/off LEDs, and to send the login credentials back to the server. If you choose a file input, you automatically get a file picker, and the browser will send the right POST request (including the file) to the server.
+        The easiest way to upload files is by using an HTML form, just like in the first server examples, where we used forms to turn on/off LEDs, and to send the login credentials back to the server. If you choose a file input, you automatically get a file picker, and the browser will send the right POST request to the server, with the file attached.
    </div>
    <div>
        <pre><code>&lt;form method="post" enctype="multipart/form-data"&gt;
@@ -147,10 +147,12 @@
 <span style="color: #000000;">}</span></code></pre>
    </div>
    <div>
-        Download the data folder <span style="color: #d7001d;">here#######</span>.
+       The
+       <pre>handleFileUpload</pre>
+        function just writes the file attached to the POST request to SPIFFS.
    </div>
    <div>
-        <br>
+       <br>
    </div>
    <div>
         If you wan to use other file types as well, you can just add them to the&nbsp;

@@ -135,8 +135,7 @@
 <span style="color: #000000;">}</span></code></pre>
    </div>
    <div>
-        Same goes for the loop: most of the work is done by the three first functions that handle the WebSocket communication, HTTP requests and OTA updates. When such an event happens, the right handler functions will be executed. These are defined elsewhere.
-   </div>
+        Same goes for the loop: most of the work is done by the first&nbsp;<span style="font-size: 1em;">three&nbsp;</span><span style="font-size: 1em;">functions that handle the WebSocket communication, HTTP requests and OTA updates. When such an event happens, the appropriate handler functions will be executed. These are defined elsewhere.</span></div>
    <div>
         <br>
    </div>
@@ -243,7 +242,7 @@
 <span style="color: #000000;">}</span></code></pre>
    </div>
    <div>
-        These are the functiono definitions of the functions used in the setup. Nothing new here, apart from the startWebSocket function. You just have to start the WebSocket server using the begin method, and then give it a callback function that is executed when the ESP receives a WebSocket message.
+        These are the function definitions of the functions used in the setup. Nothing new here, apart from the startWebSocket function. You just have to start the WebSocket server using the begin method, and then give it a callback function that is executed when the ESP receives a WebSocket message.
    </div>
    <h4>Server handlers</h4>
    <div>
@@ -336,13 +335,13 @@
    </div>
    <div>
         Again, most of the code is adapted from the previous examples, only the WebSocket part is new.
-   </div>
+   </div><div><br></div>
    <div>
         There are different types of WebSocket messages, but we're only interested in the text type, because the JavaScript code at the client side sends the color data in text format, as a hexadecimal number, starting with a '#' sign.
    </div>
    <div>
         Each color is a 10-bit number, so in total, it gives us a 30-bit number for the RGB value.
-   </div>
+   </div><div><br></div>
    <div>
         When the rainbow function is enabled, JavaScript sends an 'R' character, and when it's disabled, it sends a 'N' character.&nbsp;
    </div>
@@ -451,7 +450,7 @@ function rainbowEffect () {
 }</code></pre>
    </div>
    <div>
-        We just create a WebSocket connection object to send data to the ESP. Then every time a slider is moved, we take the values of the three sliders and we&nbsp;<span style="font-size: 1em;">square the color values to get a smoother and more natural curve. We then&nbsp;</span><span style="font-size: 1em;">combine them into a 30-bit number (10 bits per color). Finally, the RGB value gets converted to a hexadecimal string, a '#' is added, and it's sent to the ESP.</span>
+        We just create a WebSocket connection object to send data to the ESP.&nbsp;</div><div>Then every time a slider is moved, we take the values of the three sliders and we&nbsp;<span style="font-size: 1em;">square the color values to get a smoother and more natural curve. We then&nbsp;</span><span style="font-size: 1em;">combine them into a 30-bit number (10 bits per color). Finally, the RGB value gets converted to a hexadecimal string, a '#' is added, and it's sent to the ESP.</span>
    </div>
    <div>
         When the rainbow button is pressed, the sliders are disabled, and an 'R' is sent to the ESP. When the rainbow button is pressed again, the sliders are enabled, and an 'N' is sent.

@@ -3,7 +3,7 @@
     </h2>
    <h3>DNS</h3>
    <div>
-        Let's face it, constantly typing IP addresses is really cumbersome, and it would be impossible to remember all your favorite websites' addresses, especially if one of these sites uses IPv6.
+        Let's face it, constantly typing IP addresses is really cumbersome, and it would be impossible to remember all your favorite websites' addresses, especially if they use IPv6.
    </div>
    <div>
         That's why domain names were introduced: a simple string of text that's easy to remember, for example&nbsp;<a href="www.google.com">www.google.com</a>.&nbsp;
@@ -31,7 +31,10 @@
         <br>
    </div>
    <div>
-        Fortunately, there's another way: multicast DNS, or mDNS. mDNS uses domain names with the <i>.local</i>&nbsp;suffix, for example&nbsp;<a href="http://esp8266.local">http://esp8266.local</a>. If your computer needs to send a request to a domain name that ends in <i>.local</i>, it will send a multicast query to all other devices on the LAN that support mDNS, asking the device with that specific domain name to identify itself. The device with the right name will then respond with another multicast and send its IP address. Now that your computer knows the IP address of the device, it can send normal requests.
+        Fortunately, there's another way: multicast DNS, or mDNS.&nbsp;
+   </div>
+   <div>
+        mDNS uses domain names with the <i>.local</i>&nbsp;suffix, for example&nbsp;<a href="http://esp8266.local">http://esp8266.local</a>. If your computer needs to send a request to a domain name that ends in <i>.local</i>, it will send a multicast query to all other devices on the LAN that support mDNS, asking the device with that specific domain name to identify itself. The device with the right name will then respond with another multicast and send its IP address. Now that your computer knows the IP address of the device, it can send normal requests.
    </div>
    <div>
         <br>
@@ -112,9 +115,9 @@ rtt min/avg/max/mdev = 2.190/3.148/5.687/1.202 ms</code></pre>
         It's a real shame that Android doesn't support it, you can help by starring <a href="https://bugs.chromium.org/p/chromium/issues/detail?id=405925">this issue report for the Chromium project</a> to ask for mDNS support in Chrome on Android.
    </div>
    <div>
-       <br>
+        <br>
    </div>
    <div>
-       Of course, you can change the domain name of the ESP by changing the parameter of <b style="font-family: monospace; font-size: 13px; white-space: pre-wrap;"><span style="color: rgb(211, 84, 0);">MDNS</span></b><span style="font-family: monospace; font-size: 13px; white-space: pre-wrap; color: rgb(67, 79, 84);">.</span><span style="white-space: pre-wrap; font-size: 13px; font-family: monospace; color: rgb(211, 84, 0);">begin</span>.
+        Of course, you can change the domain name of the ESP by changing the parameter of <b style="font-family: monospace; font-size: 13px; white-space: pre-wrap;"><span style="color: rgb(211, 84, 0);">MDNS</span></b><span style="font-family: monospace; font-size: 13px; white-space: pre-wrap; color: rgb(67, 79, 84);">.</span><span style="white-space: pre-wrap; font-size: 13px; font-family: monospace; color: rgb(211, 84, 0);">begin</span>.
    </div>
     

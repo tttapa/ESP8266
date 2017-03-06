@@ -1,0 +1,280 @@
+
+   <h2>Network Time Protocol</h2>
+   <p>There are many applications where you want to know the time. In a normal Arduino project, you would get a RTC module, set the right time, sacrifice some Arduino pins for communication ... And when the RTC battery runs out, you have to replace it.</p>
+   <p>On the ESP8266, all you need is an Internet connection: you can just ask a time server what time it is. To do this, the Network Time Protocol (<b>NTP</b>) is used.</p>
+   <p>In the previous examples (HTTP, WebSockets) we've only used TCP connections, but NTP is based on <b>UDP</b>. There are a couple of differences, but it's really easy to use, thanks to the great libraries that come with the ESP8266 Arduino Core.</p>
+   <p>The main difference between TCP and UDP is that TCP needs a connection to send messages: First a handshake is sent by the client, the server responds, and a connection is established, and the client can send its messages. After the client has received the response of the server, the connection is closed (except when using WebSockets). To send a new message, the client has to&nbsp;<span style="font-size: 1em;">first&nbsp;</span><span style="font-size: 1em;">open a new connection to the server. This introduces latency and overhead.</span></p>
+   <p>UDP doesn't use a connection, a client can just send a message to the server directly, and the server can just send a response message back to the client when it is finished processing. There is, however, no guarantee that the messages will arrive at their destination. This means that we can't halt the program to wait for a response, because the request or response packet could have been lost on the Internet, and the ESP8266 will enter an infinite loop.</p>
+   <p>Instead of waiting for a response, we just send multiple requests, with a fixed interval between two requests, and just regularly check if a response has been received.&nbsp;</p>
+   <h3>Getting the time</h3>
+   <div>
+        Let's take a look at an example that uses UDP to request the time from a NTP server.
+   </div>
+   <h4>Libraries, constants and globals</h4>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">WiFiUdp</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<span style="color: #d35400;">WiFiUDP</span> <span style="color: #000000;">UDP</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the WiFiUDP class to send and receive</span>
+
+<b><span style="color: #d35400;">IPAddress</span></b> <span style="color: #000000;">timeServerIP</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// time.nist.gov NTP server address</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">NTPServerName</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"time.nist.gov"</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">int</span> <span style="color: #000000;">NTP_PACKET_SIZE</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">48</span><span style="color: #000000;">;</span> &nbsp;<span style="color: #434f54;">// NTP time stamp is in the first 48 bytes of the message</span>
+
+<span style="color: #00979c;">byte</span> <span style="color: #000000;">NTPBuffer</span><span style="color: #000000;">[</span><span style="color: #000000;">NTP_PACKET_SIZE</span><span style="color: #000000;">]</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// buffer to hold incoming and outgoing packets</span></code></pre>
+   </div>
+   <div>
+        To use UDP, we have to include the WiFiUdp library, and create a UDP object. We'll also need to allocate memory for a buffer to store the UDP packets. For NTP packets, we need a buffer of 48 bytes long.
+   </div>
+   <div>
+        To know where to send the UDP packets to, we need the hostname of the NTP server, this is time.nist.gov.
+   </div>
+   <h4>Setup</h4>
+   <div>
+       <pre><code>
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\r\n"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">startWiFi</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Try to connect to some given access points. Then wait for a connection</span>
+
+ &nbsp;<span style="color: #000000;">startUDP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #434f54;">!</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">hostByName</span><span style="color: #000000;">(</span><span style="color: #000000;">NTPServerName</span><span style="color: #434f54;">,</span> <span style="color: #000000;">timeServerIP</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Get the IP address of the NTP server</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"DNS lookup failed. Rebooting."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">flush</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">ESP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">reset</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Time server IP:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #000000;">timeServerIP</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\r\nSending NTP request ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">sendNTPpacket</span><span style="color: #000000;">(</span><span style="color: #000000;">timeServerIP</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        In the setup, we just start our Serial and Wi-Fi, as usual, and we start UDP as well. We'll look at the implementation of this function later.
+   </div>
+   <div>
+        We need the IP address of the NTP server, so we perform a DNS lookup with the server's hostname. There's not much we can do without the IP address of the time server, so if the lookup fails, reboot the ESP.&nbsp;
+   </div>
+   <div>
+        If we do get an IP, send the first NTP request, and enter the loop.
+   </div>
+   <h4>Loop</h4>
+   <div>
+       <pre><code><span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">intervalNTP</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">60000</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Request NTP time every minute</span>
+<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">prevNTP</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">lastNTPResponse</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">millis</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">timeUNIX</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">prevActualTime</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">currentMillis</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">millis</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">currentMillis</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">prevNTP</span> <span style="color: #434f54;">&gt;</span> <span style="color: #000000;">intervalNTP</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// If a minute has passed since last NTP request</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">prevNTP</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">currentMillis</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\r\nSending NTP request ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">sendNTPpacket</span><span style="color: #000000;">(</span><span style="color: #000000;">timeServerIP</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send an NTP request</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #00979c;">uint32_t</span> <span style="color: #d35400;">time</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">getTime</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Check if an NTP response has arrived and get the (UNIX) time</span>
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #d35400;">time</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If a new timestamp has been received</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">timeUNIX</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">time</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"NTP response:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #000000;">timeUNIX</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">lastNTPResponse</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">currentMillis</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">(</span><span style="color: #000000;">currentMillis</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">lastNTPResponse</span><span style="color: #000000;">)</span> <span style="color: #434f54;">&gt;</span> <span style="color: #000000;">3600000</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"More than 1 hour since last NTP response. Rebooting."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">flush</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">ESP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">reset</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">actualTime</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">timeUNIX</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">(</span><span style="color: #000000;">currentMillis</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">lastNTPResponse</span><span style="color: #000000;">)</span><span style="color: #434f54;">/</span><span style="color: #000000;">1000</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">actualTime</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">prevActualTime</span> <span style="color: #434f54;">&amp;&amp;</span> <span style="color: #000000;">timeUNIX</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">0</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// If a second has passed since last print</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">prevActualTime</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">actualTime</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">printf</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\rUTC time:\t%d:%d:%d &nbsp;&nbsp;"</span><span style="color: #434f54;">,</span> <span style="color: #000000;">getHours</span><span style="color: #000000;">(</span><span style="color: #000000;">actualTime</span><span style="color: #000000;">)</span><span style="color: #434f54;">,</span> <span style="color: #000000;">getMinutes</span><span style="color: #000000;">(</span><span style="color: #000000;">actualTime</span><span style="color: #000000;">)</span><span style="color: #434f54;">,</span> <span style="color: #000000;">getSeconds</span><span style="color: #000000;">(</span><span style="color: #000000;">actualTime</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> &nbsp;
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        The first part of the loop sends a new NTP request to the time server every minute. This is based on Blink Without Delay.&nbsp;
+   </div>
+   <div>
+        Then we call the getTime function to check if we've got a new response from the server. If this is the case, we update the timeUNIX variable with the new timestamp from the server.
+   </div>
+   <div>
+        If we don't get any responses for an hour, then there's something wrong, so we reboot the ESP.
+   </div>
+   <div>
+        The last part prints the actual time. The actual time is just the last NTP time plus the time since we received that NTP message.&nbsp;
+   </div>
+   <h4>Setup functions</h4>
+   <div>
+        Nothing special here, just a function to connect to Wi-Fi, and a function to start listening for UDP messages on port 123.
+   </div>
+   <div>
+       <pre><code><span style="color: #00979c;">void</span> <span style="color: #000000;">startWiFi</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Try to connect to some given access points. Then wait for a connection</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_1"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_1"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// add Wi-Fi networks you want to connect to</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_2"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_2"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_3"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_3"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;<span style="color: #434f54;">// Wait for the Wi-Fi to connect</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">250</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">'.'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\r\n"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">SSID</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Tell us what network we're connected to</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\r\n"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">startUDP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Starting UDP"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">UDP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">123</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;              &nbsp;&nbsp;&nbsp;<span style="color: rgb(67, 79, 84);">// Start listening for UDP messages on port 123</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Local port:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #000000;">UDP</span><span style="color: #434f54;">.</span><span style="color: #000000;">localPort</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <h4>Helper functions</h4>
+   <div>
+       <pre><code><span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">getTime</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">UDP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">parsePacket</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">==</span> <span style="color: #000000;">0</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// If there's no response (yet)</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<span style="color: #000000;">UDP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">read</span><span style="color: #000000;">(</span><span style="color: #000000;">NTPBuffer</span><span style="color: #434f54;">,</span> <span style="color: #000000;">NTP_PACKET_SIZE</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// read the packet into the buffer</span>
+ &nbsp;<span style="color: #434f54;">// Combine the 4 timestamp bytes into one 32-bit number</span>
+ &nbsp;<span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">NTPTime</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">(</span><span style="color: #000000;">NTPBuffer</span><span style="color: #000000;">[</span><span style="color: #000000;">40</span><span style="color: #000000;">]</span> <span style="color: #434f54;">&lt;&lt;</span> <span style="color: #000000;">24</span><span style="color: #000000;">)</span> <span style="color: #434f54;">|</span> <span style="color: #000000;">(</span><span style="color: #000000;">NTPBuffer</span><span style="color: #000000;">[</span><span style="color: #000000;">41</span><span style="color: #000000;">]</span> <span style="color: #434f54;">&lt;&lt;</span> <span style="color: #000000;">16</span><span style="color: #000000;">)</span> <span style="color: #434f54;">|</span> <span style="color: #000000;">(</span><span style="color: #000000;">NTPBuffer</span><span style="color: #000000;">[</span><span style="color: #000000;">42</span><span style="color: #000000;">]</span> <span style="color: #434f54;">&lt;&lt;</span> <span style="color: #000000;">8</span><span style="color: #000000;">)</span> <span style="color: #434f54;">|</span> <span style="color: #000000;">NTPBuffer</span><span style="color: #000000;">[</span><span style="color: #000000;">43</span><span style="color: #000000;">]</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #434f54;">// Convert NTP time to a UNIX timestamp:</span>
+ &nbsp;<span style="color: #434f54;">// Unix time starts on Jan 1 1970. That's 2208988800 seconds in NTP time:</span>
+ &nbsp;<span style="color: #00979c;">const</span> <span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">seventyYears</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">2208988800UL</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #434f54;">// subtract seventy years:</span>
+ &nbsp;<span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">UNIXTime</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">NTPTime</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">seventyYears</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #000000;">UNIXTime</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">sendNTPpacket</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">IPAddress</span></b><span style="color: #434f54;">&amp;</span> <span style="color: #000000;">address</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #d35400;">memset</span><span style="color: #000000;">(</span><span style="color: #000000;">NTPBuffer</span><span style="color: #434f54;">,</span> <span style="color: #000000;">0</span><span style="color: #434f54;">,</span> <span style="color: #000000;">NTP_PACKET_SIZE</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;<span style="color: #434f54;">// set all bytes in the buffer to 0</span>
+ &nbsp;<span style="color: #434f54;">// Initialize values needed to form NTP request</span>
+ &nbsp;<span style="color: #000000;">NTPBuffer</span><span style="color: #000000;">[</span><span style="color: #000000;">0</span><span style="color: #000000;">]</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0b11100011</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// LI, Version, Mode</span>
+
+ &nbsp;<span style="color: #434f54;">// send a packet requesting a timestamp:</span>
+ &nbsp;<span style="color: #000000;">UDP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">beginPacket</span><span style="color: #000000;">(</span><span style="color: #000000;">address</span><span style="color: #434f54;">,</span> <span style="color: #000000;">123</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// NTP requests are to port 123</span>
+ &nbsp;<span style="color: #000000;">UDP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">write</span><span style="color: #000000;">(</span><span style="color: #000000;">NTPBuffer</span><span style="color: #434f54;">,</span> <span style="color: #000000;">NTP_PACKET_SIZE</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">UDP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endPacket</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">inline</span> <span style="color: #00979c;">int</span> <span style="color: #000000;">getSeconds</span><span style="color: #000000;">(</span><span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">UNIXTime</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #000000;">UNIXTime</span> <span style="color: #434f54;">%</span> <span style="color: #000000;">60</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">inline</span> <span style="color: #00979c;">int</span> <span style="color: #000000;">getMinutes</span><span style="color: #000000;">(</span><span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">UNIXTime</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #000000;">UNIXTime</span> <span style="color: #434f54;">/</span> <span style="color: #000000;">60</span> <span style="color: #434f54;">%</span> <span style="color: #000000;">60</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">inline</span> <span style="color: #00979c;">int</span> <span style="color: #000000;">getHours</span><span style="color: #000000;">(</span><span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">UNIXTime</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #000000;">UNIXTime</span> <span style="color: #434f54;">/</span> <span style="color: #000000;">3600</span> <span style="color: #434f54;">%</span> <span style="color: #000000;">24</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        First we try to parse the UDP packet. If there's no packet available, the function just returns 0. If there is a UDP packet available however, read it into the buffer. The NTP timestamp is 32 bits or 4 bytes wide, so we combine these bytes into one long number. This number is the number of seconds since Jan 1, 1900, 00:00:00, but most applications use UNIX time, the number of seconds since Jan 1, 1970, 00:00:00 (UNIX epoch). To convert from NTP time to UNIX time, we just subtract 70 years worth of seconds.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        To request the time from the NTP server, you have to send a certain sequence of 48 bytes. We don't need any fancy features, so we just set the first byte to request the time, and leave all other 47 bytes zero.
+   </div>
+   <div>
+        To actually send the packet, you have to start the packet, specifying the IP address of the server, and the NTP port number, port 123. Then you just write the buffer to the packet, and send it with endPacket.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        The last three functions are just some simple math to convert seconds to hours, minutes and seconds.
+   </div>
+   <h4>Using the example</h4>
+   <div>
+        Enter your Wi-Fi credentials on lines 79-81, and hit upload. If you have a working Internet connection, you should get an output that looks like this:
+   </div>
+   <div>
+       <pre><code>Connecting
+.........
+
+Connected to Wi-Fi SSID
+IP address:	192.168.1.2
+
+Starting UDP
+Local port:	123
+
+Time server IP:	216.229.0.179
+
+Sending NTP request ...
+NTP response:	1488378061
+UTC time:	14:21:53   
+Sending NTP request ...
+NTP response:	1488378114
+UTC time:	14:22:53   
+Sending NTP request ...
+NTP response:	1488378174
+UTC time:	14:23:53   
+Sending NTP request ...
+NTP response:	1488378234
+UTC time:	14:24:53   
+Sending NTP request ...
+NTP response:	1488378294
+UTC time:	14:25:53
+...</code></pre>
+   </div>
+   <div>
+        You should see the time update every second, and&nbsp;<span style="background-color: rgb(245, 245, 245); font-family: monospace; font-size: 13px; white-space: pre-wrap;">Sending NTP request ... </span><span style="font-size: 1em;">&nbsp;should show up every minute.</span>
+   </div>
+   <div>
+        <span style="font-size: 1em;">If you don't have an Internet connection, the DNS lookup of the time server will fail:</span>
+   </div>
+   <div>
+       <pre><code>Connecting
+.........
+
+Connected to Wi-Fi SSID
+IP address:	192.168.1.2
+
+Starting UDP
+Local port:	123
+
+DNS lookup failed. Rebooting.
+
+ ets Jan  8 2013,rst cause:2, boot mode:(3,6)</code></pre>
+   </div>
+   <div>
+        If your connection is not reliable, or if there's heavy traffic, you might encounter some dropped packets:
+   </div>
+   <div>
+       <pre><code>Sending NTP request ...
+NTP response:	1488378780
+UTC time:	14:33:54   
+Sending NTP request ...
+UTC time:	14:34:54   
+Sending NTP request ...
+NTP response:	1488378895
+UTC time:	14:35:0</code></pre>
+   </div>
+   <div>
+        As you can see, the ESP never received a response to the second NTP request. That's not really an issue, as long as at least some packets make it through.
+   </div>
+   <h3>Local time and daylight savings</h3>
+   <div>
+        An NTP server returns the UTC time. If you want local time, you have to compensate for your time zone and daylight saving time. For example, if you want CET (Central European Time), you have to add 3600 to the UNIX time during winter, (3600 s = 1 h), and 7200 during summer (DST).
+   </div>
+    

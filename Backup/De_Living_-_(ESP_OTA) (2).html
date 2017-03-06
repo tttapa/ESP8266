@@ -1,0 +1,136 @@
+
+   <h2>Over The Air Updates</h2>
+   <div>
+        Uploading over Serial is fine during development, when you have access to the Serial pins and the USB port. But once your project is finished, and you put it inside an enclosure, it not that easy to upload updates with bug fixes or new features.
+   </div>
+   <div>
+        A solution to this problem is Over The Air updating, or OTA for short. As the name implies, this technology allows you to upload new code over Wi-Fi, instead of Serial.
+   </div>
+   <div>
+        The only disadvantage is that you have to explicitly add the code for it to every sketch you upload.
+   </div>
+   <div>
+        Let's take a look at an example ...
+   </div>
+   <h3>Blink OTA</h3>
+   <div>
+        The following example is basically Blink Without Delay, but with the necessary OTA and Wi-Fi code added as well.
+   </div>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">byte</span> <span style="color: #000000;">led</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">13</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"</span><span style="color: rgb(0, 92, 95);">ssid_from_AP_1</span><span style="color: #005c5f;">"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"</span><span style="color: rgb(0, 92, 95);">your_password_for_AP_1</span><span style="color: #005c5f;">"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// add Wi-Fi networks you want to connect to</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_2"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_2"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_3"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_3"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">1000</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #434f54;">++</span><span style="color: #000000;">i</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">' '</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">SSID</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Tell us what network we're connected to</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+ &nbsp;
+ &nbsp;<b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">setHostname</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ESP8266"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">setPassword</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"esp8266"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">onStart</span><span style="color: #000000;">(</span><span style="color: #000000;">[</span><span style="color: #000000;">]</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Start"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">onEnd</span><span style="color: #000000;">(</span><span style="color: #000000;">[</span><span style="color: #000000;">]</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\nEnd"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">onProgress</span><span style="color: #000000;">(</span><span style="color: #000000;">[</span><span style="color: #000000;">]</span><span style="color: #000000;">(</span><span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">int</span> <span style="color: #000000;">progress</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">int</span> <span style="color: #000000;">total</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">printf</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Progress: %u%%\r"</span><span style="color: #434f54;">,</span> <span style="color: #000000;">(</span><span style="color: #000000;">progress</span> <span style="color: #434f54;">/</span> <span style="color: #000000;">(</span><span style="color: #000000;">total</span> <span style="color: #434f54;">/</span> <span style="color: #000000;">100</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">onError</span><span style="color: #000000;">(</span><span style="color: #000000;">[</span><span style="color: #000000;">]</span><span style="color: #000000;">(</span><span style="color: #000000;">ota_error_t</span> <span style="color: #000000;">error</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">printf</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Error[%u]: "</span><span style="color: #434f54;">,</span> <span style="color: #000000;">error</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">error</span> <span style="color: #434f54;">==</span> <span style="color: #000000;">OTA_AUTH_ERROR</span><span style="color: #000000;">)</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Auth Failed"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">error</span> <span style="color: #434f54;">==</span> <span style="color: #000000;">OTA_BEGIN_ERROR</span><span style="color: #000000;">)</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Begin Failed"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">error</span> <span style="color: #434f54;">==</span> <span style="color: #000000;">OTA_CONNECT_ERROR</span><span style="color: #000000;">)</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connect Failed"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">error</span> <span style="color: #434f54;">==</span> <span style="color: #000000;">OTA_RECEIVE_ERROR</span><span style="color: #000000;">)</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Receive Failed"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">error</span> <span style="color: #434f54;">==</span> <span style="color: #000000;">OTA_END_ERROR</span><span style="color: #000000;">)</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"End Failed"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"OTA ready"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #d35400;">pinMode</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">OUTPUT</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #d35400;">digitalWrite</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #434f54;">,</span> <span style="color: #000000;">1</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">previousTime</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">millis</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #d35400;">interval</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">1000</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">handle</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">diff</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">millis</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">previousTime</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">diff</span> <span style="color: #434f54;">&gt;</span> <span style="color: #d35400;">interval</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">digitalWrite</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #434f54;">,</span> <span style="color: #434f54;">!</span><span style="color: #d35400;">digitalRead</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">previousTime</span> <span style="color: #434f54;">+=</span> <span style="color: #000000;">diff</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        Add your Wi-Fi credentials, and upload the sketch over Serial. Connect an LED (+ resistor) to pin 13. Then restart the IDE (you have to close all windows). Go to Tools &gt; Port, and you should get a new option: Network Ports: ESP8266 at 192.168.1.x. Select it.
+   </div>
+   <div>
+        <br>
+   </div>
+    <a href="/photo.php?id=802" title="ESP_OTA.png"><img src="/photo.php?id=802&amp;thumb=1" alt="ESP_OTA.png"></a>
+   <div>
+        <br>
+       <div>
+            Next, change the interval on line 59<span style="font-size: 1em;">&nbsp;from 1000 to 500 milliseconds, and click upload. You should get a password prompt: enter "esp8266". This password is set on line 31, so you can change it if you want to. You can also delete line 31 altogether to use it without a password, but it's not recommended - for obvious security reasons.</span>
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            The sketch should upload just fine, and once the ESP has reset itself, the LED should blink twice as fast.
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            Once in a while, you might get an error saying&nbsp;
+           <pre>[ERROR]: No Answer</pre>
+            . If this happens, just enter the password, and try again.
+       </div>
+       <h3>Serial Monitor OTA</h3>
+       <div>
+            Using the Serial Monitor over Wi-Fi is not possible (yet?). When you try to open it, you'll be prompted a password, entering the password won't work, because there is no SSH support to access the ESP's console.
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            You can use a different program to get debug output from the physical Serial port. On Windows, you can try <a href="https://technet.microsoft.com/en-us/sysinternals/bb896644.aspx">Portmon</a>. On Linux, you can try GTKTerm (
+           <pre>sudo apt-get install gtkterm</pre>
+            ) or Screen (
+           <pre>sudo apt-get install screen</pre>
+            to install, and
+           <pre>screen /dev/ttyUSB0 115200</pre>
+            or
+           <pre>screen /dev/ttyACM0 115200</pre>
+            to run;
+           <pre>CTRL+A, CTRL+D</pre>
+            to exit).
+       </div>
+   </div>
+    

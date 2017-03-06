@@ -1,0 +1,262 @@
+
+   <h2>Data logging</h2>
+   <p>A common use for IoT devices like the ESP8266 is monitoring sensors. Using the code in the previous example, we can request the time, and save some sensor values to a file. If we run a server as well, we can show this data in a pretty graph in a webpage.</p>
+   <h3><span style="font-size: 1em;">Temperature logger</span></h3>
+   <div>
+       <div>
+            In the following example, we'll use a DS18S20 temperature sensor to plot the temperature over time. It's displayed in a graph in the browser.
+       </div>
+   </div>
+   <h4>Installing libraries</h4>
+    First, download the Dallas Temperature library by Miles Burton and the OneWire library by Jim Studt: Go to Sketch &gt; Include Library ... &gt; Manage Libraries and search for 'Dallas Temperature' and 'OneWire' (make sure you download the correct version).
+   <h4>Hardware</h4>
+   <div>
+        Connect the ground of the&nbsp;DS18S20 temperature sensor (pin 1) to the ground of the ESP, connect the data pin (pin 2) to GPIO5, and V<sub>CC</sub>&nbsp;(pin 3) to the 3.3V of the ESP. Finally, connect a 4k7Ω resistor between the data pin and V<sub>CC.</sub>
+   </div>
+   <h4>Libraries, constants and globals</h4>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">OneWire</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">DallasTemperature</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">WiFiUdp</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266WebServer</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266mDNS</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">FS</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+
+<span style="color: #5e6d03;">#define</span> <span style="color: #000000;">ONE_HOUR</span> <span style="color: #000000;">3600000UL</span>
+
+<span style="color: #5e6d03;">#define</span> <span style="color: #000000;">TEMP_SENSOR_PIN</span> <span style="color: #000000;">5</span>
+
+<span style="color: #d35400;">OneWire</span> <span style="color: #000000;">oneWire</span><span style="color: #000000;">(</span><span style="color: #000000;">TEMP_SENSOR_PIN</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Set up a OneWire instance to communicate with OneWire devices</span>
+
+<span style="color: #d35400;">DallasTemperature</span> <span style="color: #000000;">tempSensors</span><span style="color: #000000;">(</span><span style="color: #434f54;">&amp;</span><span style="color: #000000;">oneWire</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Create an instance of the temperature sensor class</span>
+
+<b><span style="color: #d35400;">ESP8266WebServer</span></b> <span style="color: #000000;">server</span> <span style="color: #434f54;">=</span> <b><span style="color: #d35400;">ESP8266WebServer</span></b><span style="color: #000000;">(</span><span style="color: #000000;">80</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// create a web server on port 80</span>
+
+<span style="color: #d35400;">File</span> <span style="color: #000000;">fsUploadFile</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// a File variable to temporarily store the received file</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span> <span style="color: #434f54;">*</span><span style="color: #000000;">OTAName</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"ESP8266"</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// A name and a password for the OTA service</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span> <span style="color: #434f54;">*</span><span style="color: #000000;">OTAPassword</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"esp8266"</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">mdnsName</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"esp8266"</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Domain name for the mDNS responder</span>
+
+<span style="color: #d35400;">WiFiUDP</span> <span style="color: #000000;">UDP</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the WiFiUDP class to send and receive UDP messages</span>
+
+<b><span style="color: #d35400;">IPAddress</span></b> <span style="color: #000000;">timeServerIP</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// The time.nist.gov NTP server's IP address</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">ntpServerName</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"time.nist.gov"</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">int</span> <span style="color: #000000;">NTP_PACKET_SIZE</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">48</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// NTP time stamp is in the first 48 bytes of the message</span>
+
+<span style="color: #00979c;">byte</span> <span style="color: #000000;">packetBuffer</span><span style="color: #000000;">[</span> <span style="color: #000000;">NTP_PACKET_SIZE</span><span style="color: #000000;">]</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// A buffer to hold incoming and outgoing packets</span></code></pre>
+   </div>
+   <div>
+        The only new thing here are the OneWire and DallasTemperature libraries, to get the temperature from our sensor.<br>
+   </div>
+   <h4> Setup</h4>
+   <div>
+       <pre><code><span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\r\n"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">tempSensors</span><span style="color: #434f54;">.</span><span style="color: #d35400;">setWaitForConversion</span><span style="color: #000000;">(</span><span style="color: #00979c;">false</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Don't block the program while the temperature sensor is reading</span>
+ &nbsp;<span style="color: #000000;">tempSensors</span><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the temperature sensor</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">tempSensors</span><span style="color: #434f54;">.</span><span style="color: #d35400;">getDeviceCount</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">==</span> <span style="color: #000000;">0</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">printf</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"No DS18x20 temperature sensor found on pin %d. Rebooting.\r\n"</span><span style="color: #434f54;">,</span> <span style="color: #000000;">TEMP_SENSOR_PIN</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">flush</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">ESP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">reset</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #000000;">startWiFi</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start a Wi-Fi access point, and try to connect to some given access points. Then wait for either an AP or STA connection</span>
+
+ &nbsp;<span style="color: #000000;">startOTA</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the OTA service</span>
+
+ &nbsp;<span style="color: #000000;">startSPIFFS</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the SPIFFS and list all contents</span>
+
+ &nbsp;<span style="color: #000000;">startMDNS</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the mDNS responder</span>
+
+ &nbsp;<span style="color: #000000;">startServer</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start a HTTP server with a file read handler and an upload handler</span>
+
+ &nbsp;<span style="color: #000000;">startUDP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start listening for UDP messages to port 123</span>
+
+ &nbsp;<b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">hostByName</span><span style="color: #000000;">(</span><span style="color: #000000;">ntpServerName</span><span style="color: #434f54;">,</span> <span style="color: #000000;">timeServerIP</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Get the IP address of the NTP server</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Time server IP:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #000000;">timeServerIP</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">sendNTPpacket</span><span style="color: #000000;">(</span><span style="color: #000000;">timeServerIP</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        In the setup, there's not much new either, we just start the temperature sensor, and check if we can communicate with it. If no temperature sensor is found, the ESP resets. <br>
+        Getting the temperature from the sensor may take some time (up to 750ms). We don't want our loop to take longer than a couple of milliseconds, so we can't wait 750ms. If we did, the HTTP server etc. would start to misbehave. <br>
+        The solution is to request the temperature first. The sensor will then start reading the analog temperature, and stores it in its memory. In the meantime, the loop just keeps on running, the server refreshes etc. After 750ms, we contact the sensor again, and read the temperature from its memory.<br>
+        To tell the library that we don't want to wait for the analog to digital conversion of the sensor, we use setWaitForConversion.<br>
+       <h4>Loop</h4>
+       <div>
+           <pre><code><span style="color: #00979c;">const</span> <span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">intervalNTP</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">ONE_HOUR</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Update the time every hour</span>
+<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">prevNTP</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">lastNTPResponse</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">millis</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">intervalTemp</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">60000</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// Do a temperature measurement every minute</span>
+<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">prevTemp</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+<span style="color: #00979c;">bool</span> <span style="color: #000000;">tmpRequested</span> <span style="color: #434f54;">=</span> <span style="color: #00979c;">false</span><span style="color: #000000;">;</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">DS_delay</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">750</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Reading the temperature from the DS18x20 can take up to 750ms</span>
+
+<span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">timeUNIX</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// The most recent timestamp received from the time server</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #00979c;">unsigned</span> <span style="color: #00979c;">long</span> <span style="color: #000000;">currentMillis</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">millis</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">currentMillis</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">prevNTP</span> <span style="color: #434f54;">&gt;</span> <span style="color: #000000;">intervalNTP</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Request the time from the time server every hour</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">prevNTP</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">currentMillis</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">sendNTPpacket</span><span style="color: #000000;">(</span><span style="color: #000000;">timeServerIP</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #00979c;">uint32_t</span> <span style="color: #d35400;">time</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">getTime</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Check if the time server has responded, if so, get the UNIX time</span>
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #d35400;">time</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">timeUNIX</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">time</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"NTP response:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #000000;">timeUNIX</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">lastNTPResponse</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">millis</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">(</span><span style="color: #d35400;">millis</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">lastNTPResponse</span><span style="color: #000000;">)</span> <span style="color: #434f54;">&gt;</span> <span style="color: #000000;">24UL</span> <span style="color: #434f54;">*</span> <span style="color: #000000;">ONE_HOUR</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"More than 24 hours since last NTP response. Rebooting."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">flush</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">ESP</span><span style="color: #434f54;">.</span><span style="color: #d35400;">reset</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">timeUNIX</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">0</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">currentMillis</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">prevTemp</span> <span style="color: #434f54;">&gt;</span> <span style="color: #000000;">intervalTemp</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;<span style="color: #434f54;">// Every minute, request the temperature</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">tempSensors</span><span style="color: #434f54;">.</span><span style="color: #d35400;">requestTemperatures</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Request the temperature from the sensor (it takes some time to read it)</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">tmpRequested</span> <span style="color: #434f54;">=</span> <span style="color: #00979c;">true</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">prevTemp</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">currentMillis</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Temperature requested"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">}</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">currentMillis</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">prevTemp</span> <span style="color: #434f54;">&gt;</span> <span style="color: #000000;">DS_delay</span> <span style="color: #434f54;">&amp;&amp;</span> <span style="color: #000000;">tmpRequested</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// 750 ms after requesting the temperature</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #00979c;">uint32_t</span> <span style="color: #000000;">actualTime</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">timeUNIX</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">(</span><span style="color: #000000;">currentMillis</span> <span style="color: #434f54;">-</span> <span style="color: #000000;">lastNTPResponse</span><span style="color: #000000;">)</span> <span style="color: #434f54;">/</span> <span style="color: #000000;">1000</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// The actual time is the last NTP time plus the time that has elapsed since the last NTP response</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">tmpRequested</span> <span style="color: #434f54;">=</span> <span style="color: #00979c;">false</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #00979c;">float</span> <span style="color: #000000;">temp</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">tempSensors</span><span style="color: #434f54;">.</span><span style="color: #d35400;">getTempCByIndex</span><span style="color: #000000;">(</span><span style="color: #000000;">0</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Get the temperature from the sensor</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">temp</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">round</span><span style="color: #000000;">(</span><span style="color: #000000;">temp</span> <span style="color: #434f54;">*</span> <span style="color: #000000;">100.0</span><span style="color: #000000;">)</span> <span style="color: #434f54;">/</span> <span style="color: #000000;">100.0</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// round temperature to 2 digits</span>
+
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">printf</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Appending temperature to file: %lu,"</span><span style="color: #434f54;">,</span> <span style="color: #000000;">actualTime</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #000000;">temp</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #d35400;">File</span> <span style="color: #000000;">tempLog</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">SPIFFS</span><span style="color: #434f54;">.</span><span style="color: #d35400;">open</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"/temp.csv"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"a"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Write the time and the temperature to the csv file</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">tempLog</span><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #000000;">actualTime</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">tempLog</span><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">','</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">tempLog</span><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #000000;">temp</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">tempLog</span><span style="color: #434f54;">.</span><span style="color: #d35400;">close</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If we didn't receive an NTP response yet, send another request</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">sendNTPpacket</span><span style="color: #000000;">(</span><span style="color: #000000;">timeServerIP</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">500</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">handleClient</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// run the server</span>
+ &nbsp;<b><span style="color: #d35400;">ArduinoOTA</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">handle</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// listen for OTA events</span>
+<span style="color: #000000;">}</span></code></pre>
+       </div>
+       <div>
+            The loop looks a lot more complex, but it's actually pretty simple. It's all based on Blink Without Delay.&nbsp;
+       </div>
+       <div>
+            There's two things going on:
+       </div>
+       <div>
+           <ol>
+               <li>Every hour, the ESP requests the time from an NTP server. Then it constantly checks for a response, and updates the time if it gets an NTP response. If it hasn't received any responses for over 24 hours, there's something wrong, and the ESP resets itself.</li>
+               <li>Every minute, the ESP requests the temperature from the DS18x20 sensor, and sets the 'tmpRequested' flag. The sensor will start the analog to digital conversion.<br>
+                750ms after the request, when the conversion should be finished, the ESP reads the temperature from the sensor, and resets the flag (otherwise, it would keep on reading the same temperature over and over again). Then it writes the time and the temperature to a file in SPIFFS.<br>
+                By saving it as a CSV file in the filesystem, we can easily download it to the client (using the web server that is running), and it's easy to parse with JavaScript.</li>
+           </ol>
+           <div>
+                If we miss the first NTP response, timeUNIX will be zero. If that's the case, we send another NTP request (otherwise, the next request would be an hour later, and the temperature logging only starts when the time is known).
+           </div>
+           <div>
+                <br>
+           </div>
+       </div>
+       <div>
+            We also need to run the server and OTA functions to handle HTTP and OTA requests.
+       </div>
+       <h4>Setup functions, server handlers and helper functions</h4>
+       <div>
+            These functions haven't change since the previous example, so there's no need to cover them here. You do need them to get the program running, though. Download the ZIP archive with examples for the full sketch.
+       </div>
+       <h4>HTML and JavaScript</h4>
+       <div>
+            There's some HTML and JavaScript files to plot the temperature using Google Graphs. I won't cover it here, but if you wan't to know how it works, you can find the files in the ZIP archive.
+       </div>
+       <h4>Using the example</h4>
+       <div>
+            Set the SPIFFS size to 64KB or larger if you plan to use it for prolonged periods of time. (You could also increase the logging interval on line 80 to save space.)
+       </div>
+       <div>
+            Enter your Wi-Fi credentials on lines 138-140, and hit upload. Then upload the webpages and scripts to SPIFFS using Tools &gt; ESP8266 Sketch Data Upload.<br>
+       </div>
+       <div>
+            Make sure you have the temperature sensor connected, as described at the top of this page. Open a terminal to see if it works. You should see something like this:
+       </div>
+       <div>
+           <pre><code>Connecting
+..........
+
+Connected to SSID
+IP address:	192.168.1.2
+
+OTA ready
+
+SPIFFS started. Contents:
+	FS File: /favicon-144x144.png, size: 2.81KB
+	FS File: /temperatureGraph.js.gz, size: 1.17KB
+	FS File: /temp.csv, size: 42.50KB
+	FS File: /success.html.gz, size: 456B
+	FS File: /edit.html.gz, size: 700B
+	FS File: /main.css.gz, size: 349B
+	FS File: /index.html.gz, size: 795B
+	FS File: /manifest.json, size: 169B
+	FS File: /favicon.ico.gz, size: 1.91KB
+
+mDNS responder started: http://esp8266.local
+HTTP server started.
+Starting UDP
+Local port:	123
+Time server IP:	216.229.0.179
+Sending NTP request
+NTP response:	1488666586
+Temperature requested
+Appending temperature to file: 1488666627,20.00
+Temperature requested
+Appending temperature to file: 1488666687,19.94
+Temperature requested
+...</code></pre>
+       </div>
+       <div>
+            <span style="font-size: 1em;">Let it run for a couple of minutes, to gather some temperature data. Then open a web browser, and go to&nbsp;</span><a href="http://esp8266.local/" style="font-size: 1em;">http://esp8266.local/</a><span style="font-size: 1em;">.&nbsp;</span><br>
+       </div>
+       <div>
+            <span style="font-size: 1em;">You should get a graph showing the temperature curve. You can use the arrow buttons to travel through time, and the + and - buttons to zoom in or out. The reset button resets the zoom, and jumps back to the present. Refresh requests the latest temperature data.</span>
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            <span style="font-size: 1em;">If you want, you can still go to&nbsp;<a href="http://esp8266.local/edit.html">http://esp8266.local/edit.html</a>&nbsp;to upload new files.</span>
+       </div>
+       <div>
+            <span style="font-size: 1em;"><br>
+            </span>
+       </div>
+       <div>
+            <span style="font-size: 1em;">The web interface should look like this:</span>
+       </div>
+   </div>
+    <a href="/photo.php?id=808" title="ESP8266_Temperature_Logger.png"><img src="/photo.php?id=808&amp;thumb=1" alt="ESP8266_Temperature_Logger.png"></a>
+   <div>
+        It works on Windows, Linux and Android, but iOS seems to have some problems rendering the graph (in both Chrome and Safari).
+   </div>
+    

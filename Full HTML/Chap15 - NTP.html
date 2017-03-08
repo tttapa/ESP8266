@@ -11,7 +11,8 @@
         <title>A Beginner's Guide to the ESP8266</title>
     </head>
     <body>
-        <article>\n
+        <article>
+
    <h2>Network Time Protocol</h2>
    <p>There are many applications where you want to know the time. In a normal Arduino project, you would have to get a RTC module, set the right time, sacrifice some Arduino pins for communication ... And when the RTC battery runs out, you have to replace it.</p>
    <p>On the ESP8266, all you need is an Internet connection: you can just ask a time server what time it is. To do this, the Network Time Protocol (<b>NTP</b>) is used.</p>
@@ -288,6 +289,9 @@ UTC time:	14:35:0</code></pre>
    <div>
         An NTP server returns the UTC time. If you want local time, you have to compensate for your time zone and daylight savings. For example, if you want CET (Central European Time), you have to add 3600 to the UNIX time during winter, (3600 s = 1 h), and 7200 during summer (DST).
    </div>
-    \n<div class="back"><a href="Chap14 - WebSocket.html"><i class="material-icons">arrow_back</i></a></div>        <div class="next"><a href="Chap16 - Data Logging.html"><i class="material-icons">arrow_forward</i></a></div>\n        </article>
+    
+            <div class="back"><a href="Chap14 - WebSocket.html"><i class="material-icons">arrow_back</i></a></div>
+            <div class="next"><a href="Chap16 - Data Logging.html"><i class="material-icons">arrow_forward</i></a></div>
+        </article>
     </body>
 </html>

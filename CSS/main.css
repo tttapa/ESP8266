@@ -24,8 +24,11 @@ pre>code {
     display: block;
     background: inherit;
     padding: 12px;
-    margin-top: 6px;
-    margin-bottom: 6px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    max-height: 70vh;
+    overflow-y: auto;
+    border: 1px solid #eee
 }
 
 pre.lineNumbers {

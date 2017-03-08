@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/main.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <link href='../CSS/icon.css' rel='stylesheet' type='text/css'>
+        <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <article>\n
+   <h2>Software</h2>
+   <h3>Installation of the required software</h3>
+   <div>
+        The first step is to download and install the Arduino IDE. I explained this in <a href="https://www.instructables.com/id/A-Beginners-Guide-to-Arduino/step3/Software/">A Beginner's Guide to Arduino</a>. (As of February 7th 2017, the latest stable version of the IDE is 1.8.1.)
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        To program the ESP8266, you'll need a plugin for the Arduino IDE, it can be downloaded from <a href="https://github.com/esp8266/Arduino">GitHub</a> manually, but it is easier to just add the URL in the Arduino IDE:
+   </div>
+   <div>
+       <ol>
+           <li>Open the Arduino IDE.</li>
+           <li>Go to File &gt; Preferences.</li>
+           <li>Paste the URL <a href="http://arduino.esp8266.com/stable/package_esp8266com_index.json">http://arduino.esp8266.com/stable/package_esp8266com_index.json</a>&nbsp;into the <i>Additional Board Manager URLs </i>field.<br>
+            (You can add multiple URLs, separating them with commas.)</li>
+           <li>Go to Tools &gt; Board &gt; Board Manager and search for 'esp8266'. Select the newest version, and click install. (As of February 7th 2017, the latest stable version is 2.3.0.)</li>
+       </ol>
+       <div>
+            You can check out the official install guide <a href="https://github.com/esp8266/Arduino/blob/master/doc/installing.md">here</a>.
+       </div>
+       <h4>Drivers</h4>
+       <div>
+            If you are using a board with the CH340(G) USB-to-Serial chip, like the NodeMCU, you'll probably have to install the USB drivers for it.
+       </div>
+       <div>
+            They can be found on <a href="https://github.com/nodemcu/nodemcu-devkit/tree/master/Drivers">GitHub</a>.&nbsp;
+       </div>
+       <div>
+            If you are using a board with the CP2104 USB-to-Serial chip, like the Adafruit Feather HUZZAH board, you'll probably have to install USB drivers as well. You can find them on the <a href="http://www.silabs.com/products/mcu/pages/usbtouartbridgevcpdrivers.aspx">Silicon Labs website</a>.
+       </div>
+       <div>
+            Boards with an FTDI chip should work right out of the box, without the need of installing any drivers.
+       </div>
+   </div>
+   \n<div class="back"><a href="Chap02 - Hardware.html"><i class="material-icons">arrow_back</i></a></div>        <div class="next"><a href="Chap04 - Microcontroller.html"><i class="material-icons">arrow_forward</i></a></div>\n        </article>
+    </body>
+</html>

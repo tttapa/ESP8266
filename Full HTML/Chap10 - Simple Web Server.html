@@ -1,0 +1,390 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/main.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <link href='../CSS/icon.css' rel='stylesheet' type='text/css'>
+        <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <article>\n
+   <h2>ESP8266 First Web Server</h2>
+   <div>
+        The actual implementation of a web server is much easier than it sounds, because the ESP8266 Arduino Core includes some great libraries that handle pretty much everything for you. Let's look at a basic Hello World! example.
+   </div>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">WiFiClient</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> 
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266mDNS</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266WebServer</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;<span style="color: #434f54;">// Include the WebServer library</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<b><span style="color: #d35400;">ESP8266WebServer</span></b> <span style="color: #000000;">server</span><span style="color: #000000;">(</span><span style="color: #000000;">80</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create a webserver object that listens for HTTP request on port 80</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleRoot</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// function prototypes for HTTP handlers</span>
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #00979c;">void</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_1"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_1"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// add Wi-Fi networks you want to connect to</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_2"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_2"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_3"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_3"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect: scan for Wi-Fi networks, and connect to the strongest of the networks above</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">250</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">'.'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">SSID</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Tell us what network we're connected to</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><b><span style="color: #d35400;">MDNS</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"esp8266"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the mDNS responder for esp8266.local</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"mDNS responder started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Error setting up MDNS responder!"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">on</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"/"</span><span style="color: #434f54;">,</span> <span style="color: #000000;">handleRoot</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Call the 'handleRoot' function when a client requests URI "/"</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">onNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">handleNotFound</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// When a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"</span>
+
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Actually start the server</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"HTTP server started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #00979c;">void</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">handleClient</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Listen for HTTP requests from clients</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleRoot</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">200</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"Hello world!"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// Send HTTP status 200 (Ok) and send some text to the browser/client</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">404</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"404: Not found"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Send HTTP status 404 (Not Found) when there's no handler for the URI in the request</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        There's a lot of code that's the same as in the Wi-Fi and mDNS examples.
+   </div>
+   <div>
+        The actual server code is pretty straightforward. First, we create a server instance that listens for HTTP requests on port 80. This is the default port for web servers. In the setup, we tell the server what to do with certain HTTP requests. If the URI '/' is requested, the server should reply with a HTTP status code of 200 (Ok) and then send a response with the words 'Hello world!'. We put the code for generating a response in a separate function, and the we tell the server to execute it when '/' is requested, using the
+       <pre>server.on</pre>
+        function.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        We haven't specified what the server should do if the client requests any URI other than '/'. It should respond with an HTTP status 404 (Not Found) and a message for the user. We put this in a function as well, and use
+       <pre>server.onNotFound</pre>
+        to tell it that it should execute it when it receives a request for a URI that wasn't specified with
+       <pre>server.on</pre>
+        .
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Then we start listening for HTTP requests by using
+       <pre>server.begin</pre>
+        .<br>
+        During the loop, we constantly check if a new HTTP request is received by running
+       <pre>server.handleClient</pre>
+        . If handleClient detects new requests, it will automatically execute the right functions that we specified in the setup.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        To test it out, upload the sketch, open a new browser tab, and browse to&nbsp;<a href="http://esp8266.local">http://esp8266.local</a>. You should get a webpage saying&nbsp;
+       <pre>Hello world!</pre>
+        . If you try to go to a different page,&nbsp;<a href="http://esp8266.local/test">http://esp8266.local/test</a>, for instance, you should get a 404 error:
+       <pre>404: Not found</pre>
+        .
+   </div>
+   <h3>Turning on and off an LED over Wi-Fi</h3>
+   <div>
+        We can use the web server to serve interactive pages, and to react to certain POST request. In the following example, the ESP8266 hosts a web page with a button. When the button is pressed, the browser sends a POST request to <i>/LED</i>. When the ESP receives such a POST request on the /LED URI, it will turn on or off the LED, and then redirect the browser back to the home page with the button.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        In order to perform this redirect, the ESP has to add a <b>Location header</b>&nbsp;to the response, and use a 303 (See Other) HTTP status code.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        The button to send the POST request in the browser is part of an&nbsp;<a href="http://www.w3schools.com/html/html_forms.asp">HTML form</a>. You have to specify the target URI to send the request to, and the request method, in this case this is "/LED" and POST respectively.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Note that I changed the content type of the response from "text/plain" to "text/html". If you send it as plain text, the browser will display it as text instead of interpreting it as HTML and showing it as a button.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">WiFiClient</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> 
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266mDNS</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266WebServer</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<b><span style="color: #d35400;">ESP8266WebServer</span></b> <span style="color: #000000;">server</span><span style="color: #000000;">(</span><span style="color: #000000;">80</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create a webserver object that listens for HTTP request on port 80</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">int</span> <span style="color: #000000;">led</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">2</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleRoot</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// function prototypes for HTTP handlers</span>
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleLED</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #00979c;">void</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #d35400;">pinMode</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">OUTPUT</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_1"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_1"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// add Wi-Fi networks you want to connect to</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_2"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_2"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_3"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_3"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect: scan for Wi-Fi networks, and connect to the strongest of the networks above</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">250</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">'.'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">SSID</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Tell us what network we're connected to</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><b><span style="color: #d35400;">MDNS</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"esp8266"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the mDNS responder for esp8266.local</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"mDNS responder started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Error setting up MDNS responder!"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">on</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"/"</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">HTTP_GET</span><span style="color: #434f54;">,</span> <span style="color: #000000;">handleRoot</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Call the 'handleRoot' function when a client requests URI "/"</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">on</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"/LED"</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">HTTP_POST</span><span style="color: #434f54;">,</span> <span style="color: #000000;">handleLED</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;<span style="color: #434f54;">// Call the 'handleLED' function when a POST request is made to URI "/LED"</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">onNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">handleNotFound</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// When a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"</span>
+
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Actually start the server</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"HTTP server started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #00979c;">void</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">handleClient</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Listen for HTTP requests from clients</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleRoot</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// When URI / is requested, send a web page with a button to toggle the LED</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">200</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/html"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"&lt;form action=\"/LED\" method=\"POST\"&gt;&lt;input type=\"submit\" value=\"Toggle LED\"&gt;&lt;/form&gt;"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleLED</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If a POST request is made to URI /LED</span>
+ &nbsp;<span style="color: #d35400;">digitalWrite</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #434f54;">,</span><span style="color: #434f54;">!</span><span style="color: #d35400;">digitalRead</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Change the state of the LED</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #000000;">sendHeader</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Location"</span><span style="color: #434f54;">,</span><span style="color: #005c5f;">"/"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Add a header to respond with a new location for the browser to go to the home page again</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">303</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send it back to the browser with an HTTP status 303 (See Other) to redirect</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">404</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"404: Not found"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Send HTTP status 404 (Not Found) when there's no handler for the URI in the request</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        As you can see, the
+       <pre>server.on</pre>
+        function now takes three parameters: the URI, the request method (GET or POST) and the function to execute.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Connect an LED to GPIO2, and upload the sketch. Then go to&nbsp;<a href="http://esp8266.local/">http://esp8266.local/</a>&nbsp;and click the button to turn the LED on or off.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        You can open the developer options in Chrome (F12) to check the HTTP request that are made when you click the button: you'll see that it first send a POST request, and then receives a 303 (See Other) HTTP status as a response. The response also has a Location header containing the URI "/", so the browser will send a GET request to the URI of this new location:
+   </div>
+   <div>
+        <br>
+   </div>
+    <a href="/photo.php?id=798" title="chrome_post_LED.png"><img src="/photo.php?id=798&amp;thumb=1" alt="chrome_post_LED.png"></a>
+   <div>
+        <br>
+   </div>
+   <div>
+        If you check the page source (CTRL+U), you can see the simple HTML form that's used:
+   </div>
+   <div>
+       <pre><code>&lt;form action="/LED" method="POST"&gt;
+    &lt;input type="submit" value="Toggle LED"&gt;
+&lt;/form&gt;</code></pre>
+   </div>
+   <h3>Sending data to the ESP using HTTP POST</h3>
+   <div>
+        In the previous example, we sent an empty POST request to the ESP8266. In the previous chapter however, I explained that it's possible to send all kinds of data in the body of the POST request.&nbsp;
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        In this example, I'll show you how to send a username and a password to the ESP. The ESP will then check if they are correct, and respond to the request with the appropriate page.
+   </div>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">WiFiClient</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> 
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266mDNS</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266WebServer</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<b><span style="color: #d35400;">ESP8266WebServer</span></b> <span style="color: #000000;">server</span><span style="color: #000000;">(</span><span style="color: #000000;">80</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create a webserver object that listens for HTTP request on port 80</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleRoot</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// function prototypes for HTTP handlers</span>
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleLogin</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #00979c;">void</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_1"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_1"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// add Wi-Fi networks you want to connect to</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_2"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_2"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_3"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_3"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect: scan for Wi-Fi networks, and connect to the strongest of the networks above</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">250</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">'.'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">SSID</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Tell us what network we're connected to</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><b><span style="color: #d35400;">MDNS</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"esp8266"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the mDNS responder for esp8266.local</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"mDNS responder started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Error setting up MDNS responder!"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">on</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"/"</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">HTTP_GET</span><span style="color: #434f54;">,</span> <span style="color: #000000;">handleRoot</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Call the 'handleRoot' function when a client requests URI "/"</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">on</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"/login"</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">HTTP_POST</span><span style="color: #434f54;">,</span> <span style="color: #000000;">handleLogin</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Call the 'handleLogin' function when a POST request is made to URI "/login"</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">onNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">handleNotFound</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// When a client requests an unknown URI (i.e. something other than "/"), call function "handleNotFound"</span>
+
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Actually start the server</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"HTTP server started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #00979c;">void</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">handleClient</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Listen for HTTP requests from clients</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleRoot</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// When URI / is requested, send a web page with a button to toggle the LED</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">200</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/html"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"&lt;form action=\"/login\" method=\"POST\"&gt;&lt;input type=\"text\" name=\"username\" placeholder=\"Username\"&gt;&lt;/br&gt;&lt;input type=\"password\" name=\"password\" placeholder=\"Password\"&gt;&lt;/br&gt;&lt;input type=\"submit\" value=\"Login\"&gt;&lt;/form&gt;&lt;p&gt;Try 'John Doe' and 'password123' ...&lt;/p&gt;"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleLogin</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If a POST request is made to URI /login</span>
+ &nbsp;<span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span> <span style="color: #434f54;">!</span> <span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">hasArg</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"username"</span><span style="color: #000000;">)</span> <span style="color: #434f54;">||</span> <span style="color: #434f54;">!</span> <span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">hasArg</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"password"</span><span style="color: #000000;">)</span> 
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">||</span> <span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">arg</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"username"</span><span style="color: #000000;">)</span> <span style="color: #434f54;">==</span> <span style="color: #00979c;">NULL</span> <span style="color: #434f54;">||</span> <span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">arg</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"password"</span><span style="color: #000000;">)</span> <span style="color: #434f54;">==</span> <span style="color: #00979c;">NULL</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// If the POST request doesn't have username and password data</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">400</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"400: Invalid Request"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// The request is invalid, so send HTTP status 400</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">return</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">arg</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"username"</span><span style="color: #000000;">)</span> <span style="color: #434f54;">==</span> <span style="color: #005c5f;">"John Doe"</span> <span style="color: #434f54;">&amp;&amp;</span> <span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">arg</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"password"</span><span style="color: #000000;">)</span> <span style="color: #434f54;">==</span> <span style="color: #005c5f;">"password123"</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// If both the username and the password are correct</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">200</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/html"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"&lt;h1&gt;Welcome, "</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">arg</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"username"</span><span style="color: #000000;">)</span> <span style="color: #434f54;">+</span> <span style="color: #005c5f;">"!&lt;/h1&gt;&lt;p&gt;Login successful&lt;/p&gt;"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Username and password don't match</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">401</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"401: Unauthorized"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #000000;">handleNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">404</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"404: Not found"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Send HTTP status 404 (Not Found) when there's no handler for the URI in the request</span>
+<span style="color: #000000;">}</span>
+</code></pre>
+   </div>
+   <div>
+        The HTML in handleRoot is:
+   </div>
+   <div>
+       <pre><code>&lt;form action="/login" method="POST"&gt;
+    &lt;input type="text" name="username" placeholder="Username"&gt;&lt;/br&gt;
+    &lt;input type="password" name="password" placeholder="Password"&gt;&lt;/br&gt;
+    &lt;input type="submit" value="Login"&gt;
+&lt;/form&gt;
+&lt;p&gt;
+    Try 'John Doe' and 'password123' ...
+&lt;/p&gt;</code></pre>
+   </div>
+   <div>
+        Upload the sketch and go to&nbsp;<a href="http://esp8266.local/">http://esp8266.local/</a>, then type 'John Doe' into the username field, and 'password123' into the password field, and click 'Login'. You should get a welcome screen. If you leave on or both of the fields blank, you should get a 400 (Bad Request) error. If you enter a wrong username or password, you should get a 401 (Unauthorized) error.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        The data of the POST body can be accessed using
+       <pre>server.arg("key")</pre>
+        , and you can check if a specific key exists using
+       <pre>server.hasArg("key")</pre>
+        . The key name on the ESP8266 corresponds to the name argument in the HTML form on the web page.
+   </div>
+   <div>
+   </div>
+    <br>
+   <div>
+        When we get a POST request, we first check if the necessary arguments (username and password) are present. If that's not the case, we send a 400 (Invalid Request) status.<br>
+        Then we check if the credentials match 'John Doe' &amp; 'password123'. If that's the case, we respond with a status 200 (Ok) and a welcome page. If the username and/or password doesn't match, we send a 401 (Unauthorized) status.
+   </div>
+   <h3>Inline functions</h3>
+   <div>
+        In the previous examples, we passed
+       <pre>handleRoot</pre>
+        and
+       <pre>handleNotFound</pre>
+        to the
+       <pre>server.on</pre>
+        function as a parameter (callback function). In some cases however, it's more readable to just write the definition of the function inline, like so:
+   </div>
+   <div>
+       <pre><code><span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">{
+</span>  // ...
+<span style="color: #000000;">&nbsp;&nbsp;server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">onNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">[</span><span style="color: #000000;">]</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">404</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"404: Not found"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span><span style="color: #000000;">)</span><span style="color: #000000;">;
+</span><span style="color: rgb(0, 0, 0);">}</span>
+</code></pre>
+   </div>
+   <div>
+        <br>
+   </div>
+    \n<div class="back"><a href="Chap09 - Web Server.html"><i class="material-icons">arrow_back</i></a></div>        <div class="next"><a href="Chap11 - SPIFFS.html"><i class="material-icons">arrow_forward</i></a></div>\n        </article>
+    </body>
+</html>

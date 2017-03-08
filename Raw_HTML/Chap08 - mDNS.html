@@ -1,0 +1,123 @@
+
+   <h2>Multicast Domain Name System<br>
+    </h2>
+   <h3>DNS</h3>
+   <div>
+        Let's face it, constantly typing IP addresses is really cumbersome, and it would be impossible to remember all your favorite websites' addresses, especially if they use IPv6.
+   </div>
+   <div>
+        That's why domain names were introduced: a simple string of text that's easy to remember, for example&nbsp;<a href="www.google.com">www.google.com</a>.&nbsp;
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        However, to send a request to a website, your computer still needs to know its IP address. That's where DNS comes in. It stands for Domain Name System, and is a way to translate a website's domain name to its IP address. On the Internet, there are a lot of DNS servers. Each DNS server has a long list of domain names and their corresponding IP addresses. Devices can connect to a DNS server and send a domain name, the DNS se rver will then respond with the IP address of the requested site.
+   </div>
+   <div>
+        You could compare it to a telephone directory: you can look up a name to find the corresponding phone number.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        The DNS lookup happens completely in the background: when you go to a website in your browser, it will first send a request to a DNS server (this implies that the computer knows the IP address of the DNS server itself), wait for the response of the lookup, and then send the actual request to the right IP address.
+   </div>
+   <h3>mDNS</h3>
+   <div>
+        DNS works great for normal sites on the Internet, but most local networks don't have their own DNS server. This means that you can't reach local devices using a domain name, and you're stuck using IP addresses ...
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Fortunately, there's another way: multicast DNS, or mDNS.&nbsp;
+   </div>
+   <div>
+        mDNS uses domain names with the <i>.local</i>&nbsp;suffix, for example&nbsp;<a href="http://esp8266.local">http://esp8266.local</a>. If your computer needs to send a request to a domain name that ends in <i>.local</i>, it will send a multicast query to all other devices on the LAN that support mDNS, asking the device with that specific domain name to identify itself. The device with the right name will then respond with another multicast and send its IP address. Now that your computer knows the IP address of the device, it can send normal requests.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Luckily for us, the ESP8266 Arduino Core supports mDNS:
+   </div>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Include the Wi-Fi library</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;<span style="color: #434f54;">// Include the Wi-Fi-Multi library</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266mDNS</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Include the mDNS library</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"</span><span style="color: rgb(0, 92, 95);">ssid_from_AP_1</span><span style="color: #005c5f;">"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"</span><span style="color: rgb(0, 92, 95);">your_password_for_AP_1</span><span style="color: #005c5f;">"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// add Wi-Fi networks you want to connect to</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_2"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_2"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_3"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_3"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect: scan for Wi-Fi networks, and connect to the strongest of the networks above</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">1000</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #434f54;">++</span><span style="color: #000000;">i</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">' '</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">SSID</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Tell us what network we're connected to</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #434f54;">!</span><b><span style="color: #d35400;">MDNS</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"esp8266"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the mDNS responder</span><span style="color: #434f54;"> for esp8266.local</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Error setting up MDNS responder!"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"mDNS responder started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #000000;">}</span>
+</code></pre>
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Upload it and open ping again. Try to ping to <i>esp8266.local:</i>
+   </div>
+   <div>
+       <pre style="background: #300A24; color: white"><code><span style="color: lawngreen; font-weight: bold">user@computername</span>:<span style="color: cornflowerblue; font-weight: bold">~</span>$ ping esp8266.local
+PING esp8266.local (10.92.237.128) 56(84) bytes of data.
+64 bytes from 10.92.237.128: icmp_seq=1 ttl=128 time=5.68 ms
+64 bytes from 10.92.237.128: icmp_seq=2 ttl=128 time=3.41 ms
+64 bytes from 10.92.237.128: icmp_seq=3 ttl=128 time=2.55 ms
+64 bytes from 10.92.237.128: icmp_seq=4 ttl=128 time=2.19 ms
+64 bytes from 10.92.237.128: icmp_seq=5 ttl=128 time=2.29 ms
+64 bytes from 10.92.237.128: icmp_seq=6 ttl=128 time=2.74 ms
+^C
+--- esp8266.local ping statistics ---
+6 packets transmitted, 6 received, 0% packet loss, time 5007ms
+rtt min/avg/max/mdev = 2.190/3.148/5.687/1.202 ms</code></pre>
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        As you can see, ping will automatically find the IP address of the ESP for you.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        mDNS is supported on Windows, OSX, Linux and iOS, but not (yet?) on Android.
+   </div>
+   <div>
+        It's a real shame that Android doesn't support it, you can help by starring <a href="https://bugs.chromium.org/p/chromium/issues/detail?id=405925">this issue report for the Chromium project</a> to ask for mDNS support in Chrome on Android.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Of course, you can change the domain name of the ESP by changing the parameter of <code>MDNS.begin</code>.
+   </div>
+    

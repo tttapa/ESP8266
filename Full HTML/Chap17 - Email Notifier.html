@@ -1,0 +1,242 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/main.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <link href='../CSS/icon.css' rel='stylesheet' type='text/css'>
+        <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <article>\n
+   <h2>Email notifier</h2>
+   <p>Another great use for IoT devices is displaying things like traffic information, weather forecast, social media updates ... This requires us to send an HTTP GET request to the server of the service we'd like to access. Most popular services have API (Application Programming Interface) documents that explain that explain how you can retrieve certain information, and what format that information is in. In the following example, we'll look at Gmail specifically, but the code should be similar for other services.</p>
+   <h3>Showing the number of unread emails</h3>
+   <div>
+        To communicate with Google's Gmail servers, we have to establish a secure connection to the server and send a secure HTTPS request with our email address and password. Gmail will then respond with an XML document containing all kinds of information, like (parts of) your most recent messages and the number of unread emails.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        To make sure we don't send our Google password to a malicious server, we have to check the server's identity, using the SHA-1 fingerprint of the SSL certificate. This is a unique sequence of hexadecimal characters that identifies the server.
+   </div>
+   <h4>Allowing access to the email feed</h4>
+   <div>
+        The only way (I know of) to get email information from Google on the ESP currently is the Google Atom Feed. This is an older method, so you have to change your Gmail settings to allow access to the feed.
+   </div>
+   <div>
+        Go to&nbsp;<a href="https://www.google.com/settings/security/lesssecureapps">https://www.google.com/settings/security/lesssecureapps</a>&nbsp;to enable access for "less secure apps":<a href="/photo.php?id=811" title="blocked sign-in attempt-2.png"><img src="/photo.php?id=811&amp;thumb=1" alt="blocked sign-in attempt-2.png"></a><a href="/photo.php?id=812" title="less secure apps-2.png"><img src="/photo.php?id=812&amp;thumb=1" alt="less secure apps-2.png"></a>
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Until there's support for the new OAuth2 protocol on the ESP, we'll have to use the old, less secure method.
+   </div>
+   <h4>Hardware</h4>
+   <div>
+        Connect an LED (+ resistor) to pin 13, as an <i>unread email indicator</i>.
+   </div>
+   <h4>The Code<br>
+    </h4>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">WiFiClientSecure</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;<span style="color: #434f54;">// Include the HTTPS library</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Include the Wi-Fi library</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;<span style="color: #434f54;">// Include the Wi-Fi-Multi library</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">host</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"mail.google.com"</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// the Gmail server</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">url</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"/mail/feed/atom"</span><span style="color: #000000;">;</span> &nbsp;<span style="color: #434f54;">// the Gmail feed url</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">int</span> <span style="color: #000000;">httpsPort</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">443</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// the port to connect to the email server</span>
+
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// The SHA-1 fingerprint of the SSL certificate for the Gmail server (see below)</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">fingerprint</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"D3 90 FC 82 07 E6 0D C2 CE F9 9D 79 7F EC F6 E6 3E CB 8B B3"</span><span style="color: #000000;">;</span>
+
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// The Base64 encoded version of your Gmail login credentials (see below)</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">credentials</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"ZW1haWwuYWRkcmVzc0BnbWFpbC5jb206cGFzc3dvcmQ="</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">byte</span> <span style="color: #000000;">led</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">13</span><span style="color: #000000;">;</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #d35400;">pinMode</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">OUTPUT</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_1"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_1"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// add Wi-Fi networks you want to connect to</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_2"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_2"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_3"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_3"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect: scan for Wi-Fi networks, and connect to the strongest of the networks above</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">250</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">'.'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">SSID</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Tell us what network we're connected to</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">unread</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">getUnread</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">unread</span> <span style="color: #434f54;">==</span> <span style="color: #000000;">0</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\r\nYou've got no unread emails"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">digitalWrite</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">LOW</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">unread</span> <span style="color: #434f54;">&gt;</span> <span style="color: #000000;">0</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">printf</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\r\nYou've got %d new messages\r\n"</span><span style="color: #434f54;">,</span> <span style="color: #000000;">unread</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">digitalWrite</span><span style="color: #000000;">(</span><span style="color: #000000;">led</span><span style="color: #434f54;">,</span> <span style="color: #00979c;">HIGH</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Could not get unread mails"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">5000</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">int</span> <span style="color: #000000;">getUnread</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// a function to get the number of unread emails in your Gmail inbox</span>
+ &nbsp;<b><span style="color: #d35400;">WiFiClientSecure</span></b> <span style="color: #d35400;">client</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Use WiFiClientSecure class to create TLS (HTTPS) connection</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">printf</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting to %s:%d ... \r\n"</span><span style="color: #434f54;">,</span> <span style="color: #000000;">host</span><span style="color: #434f54;">,</span> <span style="color: #000000;">httpsPort</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #434f54;">!</span><span style="color: #d35400;">client</span><span style="color: #434f54;">.</span><span style="color: #d35400;">connect</span><span style="color: #000000;">(</span><span style="color: #000000;">host</span><span style="color: #434f54;">,</span> <span style="color: #000000;">httpsPort</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;<span style="color: #434f54;">// Connect to the Gmail server, on port 443</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connection failed"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If the connection fails, stop and return</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #434f54;">-</span><span style="color: #000000;">1</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #d35400;">client</span><span style="color: #434f54;">.</span><span style="color: #000000;">verify</span><span style="color: #000000;">(</span><span style="color: #000000;">fingerprint</span><span style="color: #434f54;">,</span> <span style="color: #000000;">host</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;<span style="color: #434f54;">// Check the SHA-1 fingerprint of the SSL certificate</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Certificate matches"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// if it doesn't match, it's not safe to continue</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Certificate doesn't match"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #434f54;">-</span><span style="color: #000000;">1</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Requesting URL: "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #000000;">url</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #d35400;">client</span><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"GET "</span><span style="color: #000000;">)</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">url</span> <span style="color: #434f54;">+</span> <span style="color: #005c5f;">" HTTP/1.1\r\n"</span> <span style="color: #434f54;">+</span> 
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #005c5f;">"Host: "</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">host</span> <span style="color: #434f54;">+</span> <span style="color: #005c5f;">"\r\n"</span> <span style="color: #434f54;">+</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #005c5f;">"Authorization: Basic "</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">credentials</span> <span style="color: #434f54;">+</span> <span style="color: #005c5f;">"\r\n"</span> <span style="color: #434f54;">+</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #005c5f;">"User-Agent: ESP8266\r\n"</span> <span style="color: #434f54;">+</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #005c5f;">"Connection: close\r\n\r\n"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// Send the HTTP request headers</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Request sent"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">unread</span> <span style="color: #434f54;">=</span> <span style="color: #434f54;">-</span><span style="color: #000000;">1</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #d35400;">client</span><span style="color: #434f54;">.</span><span style="color: #d35400;">connected</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Wait for the response. The response is in XML format</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">client</span><span style="color: #434f54;">.</span><span style="color: #d35400;">readStringUntil</span><span style="color: #000000;">(</span><span style="color: #00979c;">'&lt;'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// read until the first XML tag</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #00979c;">String</span> <span style="color: #000000;">tagname</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">client</span><span style="color: #434f54;">.</span><span style="color: #d35400;">readStringUntil</span><span style="color: #000000;">(</span><span style="color: #00979c;">'&gt;'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// read until the end of this tag to get the tag name</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">tagname</span> <span style="color: #434f54;">==</span> <span style="color: #005c5f;">"fullcount"</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// if the tag is &lt;fullcount&gt;, the next string will be the number of unread emails</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #00979c;">String</span> <span style="color: #000000;">unreadStr</span> <span style="color: #434f54;">=</span> <span style="color: #d35400;">client</span><span style="color: #434f54;">.</span><span style="color: #d35400;">readStringUntil</span><span style="color: #000000;">(</span><span style="color: #00979c;">'&lt;'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// read until the closing tag (&lt;/fullcount&gt;)</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">unread</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">unreadStr</span><span style="color: #434f54;">.</span><span style="color: #d35400;">toInt</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// convert from String to int</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">break</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// stop reading</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">}</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// if the tag is not &lt;fullcount&gt;, repeat and read the next tag</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connection closed"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #000000;">unread</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Return the number of unread emails</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <h4>How it works</h4>
+   <p>The setup should be pretty familiar by now. <br>
+    The only new thing is the getUnread() function:<br>
+    First, it starts an HTTPS connection to the Gmail server on port 443. Then it checks if the fingerprint of the certificate matches, so it knows that it's the real Google server, and not some hacker. If the certificate doesn't match, it's not safe to send the credentials to the server.</p>
+   <p>If it matches, we send a HTTP GET request to the server:</p>
+   <div>
+       <pre><code>GET /mail/feed/atom HTTP/1.1\r\n
+Host: mail.google.com\r\n
+Authorization: Basic aVeryLongStringOfBase64EncodedCharacters=\r\n
+User-Agent: ESP8266\r\n
+Connection: close\r\n\r\n</code></pre>
+   </div>
+   <div>
+        The request contains the URI we want to access (in this case this is the Atom feed URL), the host (which is mail.google.com), and the base64-encoded version of your login credentials.
+   </div>
+   <div>
+        As you can see, the different lines of the header are separated by a CRLF (Carriage Return + Line Feed, \r\n). Two CRLF's mark the end of the header.
+   </div>
+   <div>
+        The Gmail server will process our request, and send the feed as a response over the same HTTPS connection. This response is an XML document, that consists of tags with angled brackets, just like HTML. If you need a lot of data, it's recommended to use a proper XML parser library, but we only need one tag, so we can just skim through the response text until we find the &lt;fullcount&gt;x&lt;/fullcount&gt; tag. The number inside this tag is the number of unread emails in the inbox.
+   </div>
+   <div>
+        We can just convert it to an integer, and stop reading.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        This is the format of the XML feed, you can see the fullcount tag on line 5:
+   </div>
+   <div>
+       <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;feed xmlns="http://purl.org/atom/ns#" version="0.3"&gt;
+    &lt;title&gt;Gmail - Inbox for esp8266.test.mail@gmail.com&lt;/title&gt;
+    &lt;tagline&gt;New messages in your Gmail Inbox&lt;/tagline&gt;
+    &lt;fullcount&gt;5&lt;/fullcount&gt;
+    &lt;link rel="alternate" href="https://mail.google.com/mail" type="text/html" /&gt;
+    &lt;modified&gt;2017-03-05T15:54:06Z&lt;/modified&gt;
+    &lt;entry&gt;
+        &lt;title&gt;New sign-in from Firefox on Linux&lt;/title&gt;
+        &lt;summary&gt;New sign-in from Firefox on Linux Hi ESP8266, Your Google Account esp8266.test.mail@gmail.com was just used to sign in from Firefox on Linux. ESP8266 Test esp8266.test.mail@gmail.com Linux Sunday,&lt;/summary&gt;
+        &lt;link rel="alternate" href="https://mail.google.com/mail?account_id=esp8266.test.mail@gmail.com&amp;amp;message_id=123456789&amp;amp;view=conv&amp;amp;extsrc=atom" type="text/html" /&gt;
+        &lt;modified&gt;2017-03-05T15:52:45Z&lt;/modified&gt;
+        &lt;issued&gt;2017-03-05T15:52:45Z&lt;/issued&gt;
+        &lt;id&gt;tag:gmail.google.com,2004:123456789123456789&lt;/id&gt;
+        &lt;author&gt;
+            &lt;name&gt;Google&lt;/name&gt;
+            &lt;email&gt;no-reply@accounts.google.com&lt;/email&gt;
+        &lt;/author&gt;
+    &lt;/entry&gt;
+
+    ...
+
+&lt;/feed&gt;
+</code></pre>
+   </div>
+   <p>The loop just prints the number of unread emails, and turns on an LED if you have unread messages.</p>
+   <h4>Getting the fingerprint of the Gmail server</h4>
+   <div>
+        Like I mentioned before, we need a fingerprint to check the identity of the server. To get this fingerprint, execute the following command in a terminal (Linux &amp; Mac):
+   </div>
+   <div>
+       <pre><code>openssl s_client -connect mail.google.com:443 &lt; /dev/null 2&gt;/dev/null | openssl x509 -fingerprint -noout -in /dev/stdin | sed 's/:/ /g'</code></pre>
+   </div>
+   <div>
+        Copy the hexadecimal fingerprint string and paste it into the sketch on line 12. For example:
+   </div>
+   <div>
+       <pre><code><span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">fingerprint</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"D3 90 FC 82 07 E6 0D C2 CE F9 9D 79 7F EC F6 E6 3E CB 8B B3"</span><span style="color: #000000;">;</span></code></pre>
+   </div>
+   <h4>Encoding your login credentials</h4>
+   <div>
+        To get access to the feed, you have to enter your email address and password. You can't send them as plain text, you have to encode them to base64 first. Use the following command in a terminal (Linux &amp; Mac):
+   </div>
+   <div>
+       <div>
+           <pre><code>echo -n "email.address@gmail.com:password" | base64</code></pre>
+       </div>
+   </div>
+   <div>
+        Then add it to line 15 of the sketch. For example:
+   </div>
+   <div>
+       <pre><code><span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">credentials</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"ZW1haWwuYWRkcmVzc0BnbWFpbC5jb206cGFzc3dvcmQ="</span><span style="color: #000000;">;</span></code></pre>
+   </div>
+   <h3>Other APIs</h3>
+   <div>
+        Many services send their data in JSON format. If you just need one piece of information, you may be able to use the same approach of scanning the entire JSON text for a certain word, but it's much easier to use a JSON parser, like the <a href="https://github.com/bblanchon/ArduinoJson">ArduinoJson library</a>. It will deserialize the JSON text, and create a JSON object, you could compare it to an associative array. You can browse the entire tree structure, and easily find the data you're looking for.
+   </div>
+   <div>
+        The downside is that it uses more memory.
+   </div>
+    <br>
+    \n<div class="back"><a href="Chap16 - Data Logging.html"><i class="material-icons">arrow_back</i></a></div>        <div class="next"><a href="Chap18 - Advanced.html"><i class="material-icons">arrow_forward</i></a></div>\n        </article>
+    </body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/main.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <link href='../CSS/icon.css' rel='stylesheet' type='text/css'>
+        <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <article>\n
+   <h2>Hardware</h2>
+   <h3>Deciding on what board to buy</h3>
+   <div>
+        ESP8266 is just the name of the chip, many companies have designed their own boards that use this chip, so there are many different ESP8266 boards on the market. If you don't know the difference between all these different models, you might have a hard time deciding on what board to buy.
+   </div>
+   <div>
+       <div>
+            <br>
+       </div>
+       <div>
+            The easiest (and fastest) way to get an ESP8266 board is to buy one from a well-known electronics shop like Adafruit or SparkFun, but if you want it cheap, you should check out Ebay or other sites where you can order them directly from China.
+       </div>
+   </div>
+   <h4>Development boards</h4>
+   <div>
+        Some boards have all kinds of features on-board to help developing ESP8266 hardware and software: for example, a USB to Serial converter for programming, a 3.3V regulator for power, on-board LEDs for debugging, a voltage divider to scale the analog input ...
+   </div>
+   <div>
+        If you're a beginner, I would definitely recommend a development board. It's easier to get started if you don't have to worry about all these things.<br>
+   </div>
+   <h4>Bare-bones AI Thinker boards</h4>
+   <div>
+        If you want to add an ESP8266 to a small project, or if you want a cheaper* board, you might want to buy a board that doesn't have these features. In that case, you can buy one of the many ESP-## modules developed by AI Thinker. They contain just the ESP8266 and the necessary components to run it.&nbsp;
+   </div>
+   <div>
+        To program the board, you'll need an external USB-to-Serial converter.
+   </div>
+   <div>
+        With some modules, you get an on-board antenna (PCB or ceramic) and an LED, some boards have just an antenna connector, or no LEDs at all. They also differ in physical size, and flash memory size. An important thing to notice, is that some boards do not break out&nbsp;all GPIO pins. For example, the ESP-01 only has 2 I/O pins available (apart from the TX and RX pins), while other modules like the ESP-07 or ESP-12 break out all available I/O pins.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        <small>(*) The board itself is cheaper, but you'll have to spend more on external parts.</small>
+   </div>
+   <h4>Overview</h4>
+   <div>
+        Here's a table with some of the most popular ESP8266 development boards and their features:
+   </div>
+   <div>
+        <br>
+   </div>
+   <table>
+       <tbody>
+           <tr>
+               <th align="left" style="height: 17px;">Board </th>
+               <th align="left">GPIO </th>
+               <th align="left">3.3V Vreg </th>
+               <th align="left">USB-to-Serial </th>
+               <th align="left">Auto-Reset </th>
+               <th align="left">Auto-Program </th>
+               <th align="left">Flash </th>
+               <th align="left">ADC range </th>
+               <th align="left">Extra </th>
+           </tr>
+           <tr>
+               <td align="left" style="height: 17px;">SparkFun ESP8266 Thing</td>
+               <td align="left">11</td>
+               <td align="left">+</td>
+               <td align="left">-</td>
+               <td align="left">+</td>
+               <td align="left">±*</td>
+               <td align="left">512KB (4Mb)</td>
+               <td align="left">0-1V</td>
+               <td align="left">Battery charger, crypto element, temperature sensor, light sensor</td>
+           </tr>
+           <tr>
+               <td align="left" style="height: 17px;">SparkFun ESP8266 Thing - Dev Board</td>
+               <td align="left">11</td>
+               <td align="left">+</td>
+               <td align="left">+</td>
+               <td align="left">+</td>
+               <td align="left">+</td>
+               <td align="left">512KB (4Mb)</td>
+               <td align="left">0-1V</td>
+               <td align="left"><br>
+                </td>
+           </tr>
+           <tr>
+               <td align="left" style="height: 17px;">Node MCU</td>
+               <td align="left">11</td>
+               <td align="left">+</td>
+               <td align="left">+</td>
+               <td align="left">+</td>
+               <td align="left">+</td>
+               <td align="left">4MB (32Mb)</td>
+               <td align="left">0-3.3V</td>
+               <td align="left"><br>
+                </td>
+           </tr>
+           <tr>
+               <td align="left" style="height: 17px;">Adafruit Feather HUZZAH with ESP8266</td>
+               <td align="left">11</td>
+               <td align="left">+</td>
+               <td align="left">+</td>
+               <td align="left">+</td>
+               <td align="left">+</td>
+               <td align="left">4MB (32Mb)</td>
+               <td align="left">0-1V</td>
+               <td align="left">Battery charger</td>
+           </tr>
+           <tr>
+               <td align="left" style="height: 17px;">Adafruit HUZZAH ESP8266 Breakout</td>
+               <td align="left">11</td>
+               <td align="left">+</td>
+               <td align="left">-</td>
+               <td align="left">-</td>
+               <td align="left">-</td>
+               <td align="left">4MB (32Mb)</td>
+               <td align="left">0-1V</td>
+               <td align="left">5V-tolerant RX and Reset pins</td>
+           </tr>
+           <tr>
+               <td align="left" style="height: 17px;">ESP-##</td>
+               <td align="left">4 - 11</td>
+               <td align="left">-</td>
+               <td align="left">-</td>
+               <td align="left">-</td>
+               <td align="left">-</td>
+               <td align="left">512KB (4Mb) – 4MB (32Mb)</td>
+               <td align="left">0-1V</td>
+               <td align="left">Small and cheap</td>
+           </tr>
+       </tbody>
+   </table>
+   <div>
+        You can find the full list of ESP-## modules <a href="http://www.esp8266.com/wiki/doku.php?id=esp8266-module-family">here</a>.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        As you can see, both the Node MCU and the Adafruit Feather HUZZAH are solid choices.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        <small>(*) When auto-program on the SparkFun ESP8266 Thing is enabled, you can't use the Serial Monitor.</small>
+   </div>
+   <h3>Getting the hardware ready</h3>
+   <div>
+        There are two main categories of ESP8266 boards: development boards with a USB interface (USB-to-Serial convertor) on-board, and boards without a USB connection.
+   </div>
+   <h4>Development boards with a USB interface</h4>
+   <div>
+        For example: NodeMCU,&nbsp;SparkFun ESP8266 Thing - Dev Board, SparkFun Blynk Board, Adafruit Feather HUZZAH&nbsp;with ESP8266 Wi-Fi ...
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        These boards will show up in Device manager (Windows) or in lsusb (Linux) as soon as you plug them in.
+   </div>
+   <div>
+        They have a 3.3V regulator on-board, and can be programmed over USB directly, so you don't need any external components to get it working.
+   </div>
+   <div>
+        The only thing you may need to do, is solder on some headers.
+   </div>
+   <h4>Bare-bones boards and boards without a USB interface</h4>
+   <p>This category has 2 sub-categories: boards with a 3.3V regulator on-board, and boards with just the ESP8266 and a flash memory chip, without 3.3V regulator. If your board doesn't have a 5V to 3.3V regulator, buy one separately. You could use an <a href="http://cds.linear.com/docs/en/datasheet/1117fd.pdf">LM1117-3.3</a> for example. The on-board 3.3V regulator of most Arduino boards is not powerful enough to power the ESP.</p>
+   <p>To program the board, you'll need a USB-to-Serial converter. The FTDI FT232RL is quite popular, because it can switch between 5V and 3.3V. <b>It is essential that the USB-to-Serial converter you buy operates at 3.3V. If you buy a 5V model, you will damage the ESP8266.</b></p>
+   <h4>Connecting the USB-to-Serial converter</h4>
+   <ol>
+       <li>Connect the ground (GND) of the USB-to-Serial converter to the ground of the ESP8266.<br>
+        </li>
+       <li>Connect the RX-pin of the&nbsp;USB-to-Serial converter to the TXD pin of the ESP8266. (On some boards, it's labelled TX instead of TXD, but it's the same pin.)</li>
+       <li>Connect the TX-pin of the&nbsp;USB-to-Serial converter to the RXD pin of the ESP8266.&nbsp;(On some boards, it's labelled RX instead of RXD, but it's the same pin.)</li>
+       <li>If your ESP8266 board has a DTR pin, connect it to the DTR pin of the USB-to-Serial converter. This enables auto-reset when uploading a sketch, more on that later. <br>
+        </li>
+   </ol>
+   <h4>Enabling the chip</h4>
+   <div>
+        If you're using a bare-bone ESP-## board by AI Thinker, you have to add some resistors to turn on the ESP8266, and to select the right boot mode.&nbsp;
+   </div>
+   <div>
+       <ol>
+           <li>Enable the chip by connecting the CH_PD (Chip Power Down, sometimes labeled CH_EN or chip enable) pin to V<sub>CC&nbsp;</sub>through a 10KΩ resistor.</li>
+           <li>Disable SD-card boot by connecting GPIO15 to ground through a 10KΩ resistor.</li>
+           <li>Select normal boot mode by connecting GPIO0 to V<sub>CC </sub>through a 10KΩ resistor.</li>
+           <li>Prevent random resets by connecting the RST (reset) pin to V<sub>CC </sub>through a 10KΩ resistor.</li>
+           <li>Make sure you don't have anything connected to GPIO2 (more information in the next chapter).<br>
+            </li>
+       </ol>
+       <h4>Adding reset and program buttons</h4>
+   </div>
+   <div>
+        If your ESP8266 board doesn't have a reset button, you could add one by connecting a push button to between the RST pin and ground.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        To put the chip into programming mode, you have to pull GPIO0 low during startup. That's why we also need a program button. Because it's possible to use GPIO0 as an output, we can't directly short it to ground, that could damage the chip. To prevent this, connect 470Ω resistor in series with the switch. It's important that this resistance is low enough, otherwise, it will be pulled high by the 10KΩ resistor we added in the previous paragraph.
+   </div>
+   <h4>Connecting the power supply</h4>
+   <div>
+        If the ESP8266 module you have doesn't have a 3.3V voltage regulator on board, you have to add one externally. You could use an <a href="http://cds.linear.com/docs/en/datasheet/1117fd.pdf">LM1117-3.3</a> for example.
+   </div>
+   <div>
+       <ol>
+           <li>Connect the first pin of the regulator to ground.</li>
+           <li>Place a 10µF capacitor between pin 2 (V<sub>out</sub>) and ground. Watch the polarity!</li>
+           <li>Place a 10µF capacitor between pin 3 (V<sub>in</sub>) and ground.</li>
+           <li>Connect pin 2 to the 3.3V or V<sub>CC</sub>of the ESP8266.</li>
+           <li>Connect pin 3 to a 5V power source, a USB port, for example.</li>
+       </ol>
+   </div>
+   <div>
+        <br>
+   </div>
+    <a href="/photo.php?id=716" title="VReg.png"><img src="/photo.php?id=716&amp;thumb=1" alt="VReg.png"></a><a href="/photo.php?id=731" title="ESP8266-2.png"><img src="/photo.php?id=731&amp;thumb=1" alt="ESP8266-2.png"></a>
+   <h3>Before you begin ...</h3>
+   <div>
+        There's a few things you have to look out for when using an ESP8266: The most important thing is that it runs at 3.3V, so if you connect it to a 5V power supply, you'll kill it. Unlike some 3.3V Arduino or Teensy boards, <b>the ESP8266's I/O pins are not 5V tolerant</b>, so if you use a 5V USB-to-Serial converter, or 5V sensors etc. you'll blow it up.&nbsp;
+   </div>
+   <div>
+        A second thing to keep in mind is that the ESP8266 can only source or sink <b>12mA per output pin</b>, compared to 20-40mA for most Arduinos.
+   </div>
+   <div>
+        The ESP8266 has one <b>analog to digital converter</b>, but it has a strange voltage range:<b> 0 - 1V</b>, voltages above 1V might damage the board.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        One last thing to keep in mind is that the ESP8266 has to share the system resources and CPU time between your sketch and the Wi-Fi driver. Also, features like PWM, interrupts or I²C are emulated in software, most Arduinos on the other hand, have dedicated hardware parts for these tasks.
+   </div>
+   <div>
+        For most applications however, this is not too much of an issue.
+   </div>
+   <div>
+        <br>
+   </div>
+    \n<div class="back"><a href="Chap01 - ESP8266.html"><i class="material-icons">arrow_back</i></a></div>        <div class="next"><a href="Chap03 - Software.html"><i class="material-icons">arrow_forward</i></a></div>\n        </article>
+    </body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/main.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <link href='../CSS/icon.css' rel='stylesheet' type='text/css'>
+        <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <article>\n
+   <h2>Uploading sketches to the ESP8266<br>
+    </h2>
+   <div>
+        The upload procedure for ESP8266 boards is a little different from the normal Arduino procedure. Most Arduinos will automatically reset when a new program is being uploaded, and will automatically enter programming mode.
+   </div>
+   <div>
+        On some ESP boards you have to manually enter programming mode, and on the bare-bones modules, you even have to reset them manually.
+   </div>
+   <div>
+        However, there are some simple circuits you can use to get automatic uploads.
+   </div>
+   <h3>Auto-reset</h3>
+   <div>
+        <i>This only applies to boards without an on-board USB-to-Serial converter.</i>
+   </div>
+   <div>
+        <i><br>
+        </i>
+   </div>
+   <div>
+        If the USB-to-Serial converter you're using has a DTR flow control line, you can automate the reset signal. When sending data to the ESP, the DTR line goes low, and stays low for some time. To reset the ESP, we need a low pulse on the RST pin. The problem is that the DTR pin <i>stays </i>low. To solve this, we're going to build a crude edge detector circuit, using a capacitor. Take a look at the following schematic:
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        <a href="/photo.php?id=746" title="reset_without_diode.png"><img src="/photo.php?id=746&amp;thumb=1" alt="reset_without_diode.png"></a><br>
+   </div>
+   <div>
+        You might recognize that this is basically a low-cut filter. In normal conditions, DTR is high (3.3V), and the reset line is also high, because of the pull-up resistor R2. This means that the voltage across the capacitor is 0V. When DTR suddenly drops (to 0V), the voltage across the capacitor is still 0V, meaning that the reset line will be at 0V + 0V = 0V, and a reset is triggered.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        However, C1 immediately starts charging through R2, and reaches 3.3V. At this point, DTR is still at 0V, meaning that there's now 3.3V across the capacitor. When DTR rises again, the reset line will be at 3.3V + 3.3V = 6.6V, and then immediately starts to discharge through R2, finally reaching 3.3V again, with 0V across C1.
+   </div>
+   <div>
+        This is a problem: 6.6V can damage the ESP, so we have to find a way to get rid of the positive peak.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        One glance at this MATLAB simulation shows us the problem even better:
+   </div>
+   <div>
+        <br>
+   </div>
+    <a href="/photo.php?id=743" title="without_diode.png"><img src="/photo.php?id=743&amp;thumb=1" alt="without_diode.png"></a>
+   <div>
+        <i>The blue signal is the voltage on the DTR pin, and the yellow signal is the voltage on the reset pin.</i><br>
+       <div>
+            <br>
+       </div>
+       <div>
+            The solution is to add a diode: while charging the capacitor, it shouldn't change anything, so it should be reverse biased (just a fancy way of saying that it's not conducting any current because the polarity is the other way around), and while the capacitor is discharging, it should discharge the capacitor "immediately".
+       </div>
+       <div>
+            Here's what that looks like:
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            <a href="/photo.php?id=747" title="reset_with_diode.png"><img src="/photo.php?id=747&amp;thumb=1" alt="reset_with_diode.png"></a><br>
+       </div>
+       <div>
+            Let's run the simulation again to check if our problem is solved:
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            <a href="/photo.php?id=744" title="with_diode.png"><img src="/photo.php?id=744&amp;thumb=1" alt="with_diode.png"></a>
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            As you can see, the 6.6V peak is now very narrow, just like we wanted. It's impossible to discharge the capacitor instantly, that would require a capacitor and a diode with 0Ω of series resistance, and an infinite current, which is impossible, obviously. There's also a smaller but relatively wide peak of approximately 3.9V. This is because a diode only conducts when the voltage across it is higher than ~600mV. This means that the last 0.6V that's left in the capacitor (from 3.9 to 3.3V) will still be discharged through R2 only.&nbsp;
+       </div>
+       <div>
+            Nevertheless, the voltage peak is much lower and narrower than without the diode, and it's safe to connect to the ESP8266.
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            This exact circuit is also used in the Arduino Uno, for example.
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            <b>Note</b>: if you followed the instructions in the hardware step correctly, you should already have added R2 to your ESP.
+       </div>
+       <h4>How to use Auto-reset</h4>
+        To use this auto-reset circuit, connect it to the DTR line of your USB-to-Serial converter, and to the reset line of the ESP, as shown in the diagram. Then click compile (just because the first compilation can take quite some time). Go to Tools &gt; Reset and select 'ck'. When it's done compiling, hold down the program button we added in the hardware step, and click upload. Wait for it to say "Uploading..." and then release the program button.
+   </div>
+   <h3>Auto-reset and Auto-program</h3>
+   <div>
+        <i>This only applies to boards without an on-board USB-to-Serial converter.</i><br>
+   </div>
+   <div>
+        <i><br>
+        </i>
+   </div>
+   <div>
+        The method above still requires you to press a button to upload a new sketch. If your USB-to-Serial converter has a RTS line as well as a DTR line, you can automate the entire process.
+   </div>
+   <div>
+        <a href="/photo.php?id=748" title="auto-reset_auto-program.png" style="font-size: 1em;"><img src="/photo.php?id=748&amp;thumb=1" alt="auto-reset_auto-program.png"></a><br>
+   </div>
+   <div>
+       <div>
+            You may find out that the 4.7kΩ resistor doesn't work for you. In that case, try some other value, like 10kΩ, for example.
+       </div>
+       <div>
+            <br>
+       </div>
+       <div>
+            This method was first used in the NodeMCU, so go to Tools &gt; Reset Method, and select "nodemcu". This will drive the DTR&amp;RTS pins high and low in the right sequence to get it in programming mode before uploading.
+       </div>
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        This is by far the best method, but the problem is that you need access to both the RTS and DTR pins, while most USB-to-Serial adapters break out only one of the two.
+   </div>
+   <div>
+        <br>
+   </div>
+   <h3>Manual reset and manual program</h3>
+   <div>
+       <i>This only applies to boards without an on-board USB-to-Serial converter.</i><br>
+   </div>
+   <div>
+       <br>
+   </div>
+   <div>
+        If you don't have a USB-to-Serial converter with DTR and RTS lines, you could also just use the reset and program buttons we added in the hardware chapter. To get the ESP in program mode, GPIO0 must be low while booting:&nbsp;
+   </div>
+   <div>
+       <ol>
+           <li>press and hold the reset button</li>
+           <li>press and hold the program button<br>
+            </li>
+           <li>release the reset button, the ESP will boot in program mode</li>
+           <li>release the program button</li>
+           <li>upload the sketch</li>
+       </ol>
+       <div>
+            If you want to get out of program mode without uploading, just press reset (without pressing the program button).
+       </div>
+   </div>
+   <h3>Board options</h3>
+   <div>
+        If your specific board is in the Tools &gt; Board list (e.g. NodeMCU, SparkFun and Adafruit boards), you can just select it, and you will get the right settings. When your board isn't in the list, you'll have to select a Generic ESP8266. In that case there's lots of new options in the Tools menu of the Arduino IDE, so let's go over them and pick the right settings.
+   </div>
+   <div>
+        <br>
+   </div>
+   <h4>Flash Mode</h4>
+   <div>
+        Like I said before, the ESP8266 uses an external flash chip for storage. You can communicate with this chip over 2 datalines (DIO), or over all 4 datalines (QIO). Using 4 lines is two times faster than 2 lines, so in most cases, you should choose QIO. (If you're doing some advanced stuff and you need 2 more GPIO pins, you could use 2 lines instead of 4, and use the 2 lines as I/O. Most modules don't give you access to these pins, though. )
+   </div>
+   <h4>Flash Size</h4>
+   <div>
+        Different boards/modules have different sizes of flash chips on board. There are boards with 512kB, 1MB, 2MB and 4MB of flash. To know how much flash your board has, you can try the Examples &gt; ESP8266 &gt; CheckFlashConfig to see if your flash setting is correct, or you can check the specifications of your specific board online.
+   </div>
+   <div>
+        You can also select the SPIFFS (SPI Flash File System) size. The SPIFFS partition is a small file system to store files. If you're not using it, you can select the minimum. Later on in the article, we'll use SPIFFS, and I'll remind you to select a larger SPIFFS size, but for now, it doesn't really matter.
+   </div>
+   <h4>Debug port</h4>
+   <div>
+        There's a load of things going on when the ESP is running: Things like Wi-Fi connections, TCP connections, DNS lookups ... you name it. All these small tasks produce a whole lot of debug output to help you troubleshoot. However, in a normal situation, where your program is behaving as expected, you don't need all those debug messages to flood the Serial Monitor, so you can just turn them off by selecting 'Disabled'.&nbsp;
+   </div>
+   <div>
+        If you do wish to receive debug messages, you can select the port to send them to. (Serial on pins 1 and 3, or Serial1 on pin 2)
+   </div>
+   <h4>Debug level</h4>
+   <div>
+        This allows you to choose what kind of debug messages you want to show.
+   </div>
+   <h4>Reset Method</h4>
+   <div>
+        As mentioned in the paragraphs above, there are different methods for auto-reset and auto-program. If you're using the first method (using the edge detector), you should use 'ck', if you use the two-transistor circuit, select 'nodemcu'.
+   </div>
+   <h4>Flash Frequency</h4>
+   <div>
+        If you need some extra memory speed, you could change the flash frequency from 40MHz to 80MHz. This is the clock frequency of the SPI/SDIO link.
+   </div>
+   <h4>CPU Frequency</h4>
+   <div>
+        If you need some extra CPU performance, you can double the clock speed from 80MHz to 160MHz. It's actually an overclock, but I've never had any issues or instability.&nbsp;
+   </div>
+   <h4>Upload Speed</h4>
+   <div>
+        The baud rate for uploading to the ESP. The default is 115200 baud, but you can go higher (if you're changing your sketch a lot, it might be too slow). 921600 baud works most of the time, but you may get an error sometimes, if that's the case, switching back to 115200 will probably solve all problems.
+   </div>
+    \n<div class="back"><a href="Chap05 - Network Protocols.html"><i class="material-icons">arrow_back</i></a></div>        <div class="next"><a href="Chap07 - Wi-Fi Connections.html"><i class="material-icons">arrow_forward</i></a></div>\n        </article>
+    </body>
+</html>

@@ -1,0 +1,195 @@
+
+   <h2> The ESP8266 as a microcontroller - Hardware</h2>
+   <p>While the ESP8266 is often used as a ‘dumb’ Serial-to-WiFi bridge, it’s a very powerful microcontroller on its own. In this chapter, we’ll look at the non-Wi-Fi specific functions of the ESP8266.</p>
+   <h3>Digital I/O</h3>
+   <p>Just like a normal Arduino, the ESP8266 has digital input/output pins (I/O or GPIO, General Purpose Input/Output pins). As the name implies, they can be used as digital inputs to read a digital voltage, or as digital outputs to output either 0V (sink current) or 3.3V (source current).</p>
+   <h4>Voltage and current restrictions</h4>
+   <p>The ESP8266 is a 3.3V microcontroller, so its I/O operates at 3.3V as well. The pins are <strong>not 5V tolerant, applying more than 3.6V on any pin will kill the chip.</strong></p>
+   <p>The maximum current that can be drawn from a single GPIO pin is <strong>12mA</strong>.</p>
+   <h4>Usable pins</h4>
+   <p>The ESP8266 has 17 GPIO pins (0-16), however, you can only use 11 of them, because 6 pins (GPIO 6 - 11) are used to connect the flash memory chip. This is the small 8-legged chip right next to the ESP8266. If you try to use one of these pins, you might crash your program.</p>
+   <p>GPIO 1 and 3 are used as TX and RX of the hardware Serial port (UART), so in most cases, you can’t use them as normal I/O while sending/receiving serial data.</p>
+   <h4>Boot modes</h4>
+   <p>As mentioned in the previous chapter, some I/O pins have a special function during boot: They select 1 of 3 boot modes:</p>
+   <table style="box-sizing: border-box; border-spacing: 0px; border-collapse: collapse; margin-top: 0px; margin-bottom: 16px; display: block; overflow: auto; color: rgb(51, 51, 51); font-family: -apple-system, BlinkMacSystemFont,">
+       <thead style="box-sizing: border-box;">
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">GPIO15</th>
+               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">GPIO0</th>
+               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">GPIO2</th>
+               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Mode</th>
+           </tr>
+       </thead>
+       <tbody style="box-sizing: border-box;">
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">0V</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">0V</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">3.3V</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Uart Bootloader</td>
+           </tr>
+           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">0V</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">3.3V</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">3.3V</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Boot sketch (SPI flash)</td>
+           </tr>
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">3.3V</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">x</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">x</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">SDIO mode (not used for Arduino)<br>
+                </td>
+           </tr>
+       </tbody>
+   </table>
+   <p>Note: you don’t have to add an external pull-up resistor to GPIO2, the internal one is enabled at boot.</p>
+   <p>We made sure that these conditions are met by adding external resistors in the previous chapter, or the board manufacturer of your board added them for you. This has some implications, however:</p>
+   <ul>
+       <li>GPIO15 is always pulled low, so you can’t use the internal pull-up resistor. You have to keep this in mind when using GPIO15 as an input to read a switch or connect it to a device with an open-collector (or open-drain) output, like I²C.</li>
+       <li>GPIO0 is pulled high during normal operation, so you can’t use it as a Hi-Z input.</li>
+       <li>GPIO2 can’t be low at boot, so you can’t connect a switch to it.</li>
+   </ul>
+   <h4>Internal pull-up/-down resistors</h4>
+   <p>GPIO 0-15 all have a built-in pull-up resistor, just like in an Arduino. GPIO16 has a built-in pull-down resistor.</p>
+   <h4>PWM</h4>
+   <p>Unlike most Atmel chips (Arduino), the ESP8266 doesn’t support hardware PWM, however, software PWM is supported on all digital pins. The default PWM range is 10-bits @ 1kHz, but this can be changed (up to &gt;14-bit@1kHz).</p>
+   <h3>Analog input</h3>
+   <p>The ESP8266 has a single analog input, with an input range of 0 - 1.0V. If you supply 3.3V, for example, you will damage the chip. Some boards like the NodeMCU have an on-board resistive voltage divider, to get an easier 0 - 3.3V range. You could also just use a trimpot as a voltage divider.</p>
+   <p>The ADC (analog to digital converter) has a resolution of 10 bits.</p>
+   <h3>Communication</h3>
+   <h4>Serial</h4>
+   <p>The ESP8266 has two hardware UARTS (Serial ports):<br>
+    UART0 on pins 1 and 3 (TX0 and RX0 resp.), and UART1 on pins 2 and 8 (TX1 and RX1 resp.), however, GPIO8 is used to connect the flash chip. This means that UART1 can only transmit data.</p>
+   <p>UART0 also has hardware flow control on pins 15 and 13 (RTS0 and CTS0 resp.). These two pins can also be used as alternative TX0 and RX0 pins.</p>
+   <h4>I²C</h4>
+   <p>The ESP doesn’t have a hardware TWI (Two Wire Interface), but it is implemented in software. This means that you can use pretty much any two digital pins. By default, the I²C library uses pin 4 as SDA and pin 5 as SCL. (The data sheet specifies GPIO2 as SDA and GPIO14 as SCL.) The maximum speed is approximately 450kHz.</p>
+   <h4>SPI</h4>
+   <p>The ESP8266 has one SPI connection available to the user, referred to as HSPI. It uses GPIO14 as CLK, 12 as MISO, 13 as MOSI and 15 as Slave Select (SS). It can be used in both Slave and Master mode (in software).</p>
+   <h3>GPIO overview</h3>
+   <table style="box-sizing: border-box;border-spacing: 0px;border-collapse: collapse;margin-top: 0px;margin-bottom: 16px;display: block; overflow: auto; */color: rgb(51, 51, 51);font-family: -apple-system, BlinkMacSystemFont,">
+       <thead style="box-sizing: border-box;">
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">GPIO</th>
+               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Function</th>
+               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">State</th>
+               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Restrictions</th>
+           </tr>
+       </thead>
+       <tbody style="box-sizing: border-box;">
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">0</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Boot mode select</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">3.3V</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">No Hi-Z</td>
+           </tr>
+           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">1</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">TX0</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Not usable during Serial transmission</td>
+           </tr>
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">2</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Boot mode select<br>
+                TX1 </td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">3.3V (boot only)</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Don’t connect to ground at boot time <br>
+                Sends debug data at boot time</td>
+           </tr>
+           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">3</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">RX0</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Not usable during Serial transmission</td>
+           </tr>
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">4</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">SDA (I²C)</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+           </tr>
+           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">5</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">SCL (I²C)</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+           </tr>
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">6 - 11</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Flash connection</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">x</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Not usable, and not broken out<br>
+                </td>
+           </tr>
+           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">12</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">MISO (SPI)</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+           </tr>
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">13</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">MOSI (SPI)</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+           </tr>
+           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">14</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">SCK (SPI)</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+           </tr>
+           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">15</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">SS (SPI)</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">0V</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Pull-up resistor not usable</td>
+           </tr>
+           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">16</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Wake up from sleep</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">-</td>
+               <td style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">No pull-up resistor, but pull-down instead <br>
+                Should be connected to RST to wake up</td>
+           </tr>
+       </tbody>
+   </table>
+   <h2>The ESP8266 as a microcontroller - Software</h2>
+   <p>Most of the microcontroller functionality of the ESP uses exactly the same syntax as a normal Arduino, making it really easy to get started.</p>
+   <h3>Digital I/O</h3>
+   <p>Just like with a regular Arduino, you can set the function of a pin using <code>pinMode(pin, mode);</code> where <code>pin</code> is the GPIO number*, and <code>mode</code> can be either <code>INPUT</code>, which is the default, <code>OUTPUT</code>, or <code>INPUT_PULLUP</code> to enable the built-in pull-up resistors for GPIO 0-15. To enable the pull-down resistor for GPIO16, you have to use <code>INPUT_PULLDOWN_16</code>.</p>
+   <p>(*) NodeMCU uses a different pin mapping, read more <a href="https://github.com/esp8266/Arduino/blob/master/doc/boards.md#nodemcu-09">here</a>. To address a NodeMCU pin, e.g. pin 5, use D5: for instance: <code>pinMode(D5, OUTPUT);</code></p>
+   <p>To set an output pin high (3.3V) or low (0V), use <code>digitalWrite(pin, value);</code> where <code>pin</code> is the digital pin, and <code>value</code> either 1 or 0 (or <code>HIGH</code> and <code>LOW</code>).</p>
+   <p>To read an input, use <code>digitalRead(pin);</code></p>
+   <p>To enable PWM on a certain pin, use <code>analogWrite(pin, value);</code> where <code>pin</code> is the digital pin, and <code>value</code> a number between 0 and 1023.</p>
+   <p>You can change the range (bit depth) of the PWM output by using <code>analogWriteRange(new_range);</code></p>
+   <p>The frequency can be changed by using <code>analogWriteFreq(new_frequency);</code>. <code>new_frequency</code> should be between 100 and 1000Hz.</p>
+   <h3>Analog input</h3>
+   <p>Just like on an Arduino, you can use <code>analogRead(A0)</code> to get the analog voltage on the analog input. (0 = 0V, 1023 = 1.0V).</p>
+   <p>The ESP can also use the ADC to measure the supply voltage (V<sub>CC</sub>). To do this, include <code>ADC_MODE(ADC_VCC);</code> at the top of your sketch, and use <code>ESP.getVcc();</code> to actually get the voltage.<br>
+    If you use it to read the supply voltage, you can’t connect anything else to the analog pin.</p>
+   <h3>Communication</h3>
+   <h4>Serial communication</h4>
+   <p>To use UART0 (TX = GPIO1, RX = GPIO3), you can use the <code>Serial</code> object, just like on an Arduino:&nbsp;<code>Serial.begin(baud)</code>.</p>
+   <p></p>
+   <p>To use the alternative pins (TX = GPIO15, RX = GPIO13), use <code>Serial.swap()</code> after <code>Serial.begin</code>.</p>
+   <p>To use UART1 (TX = GPIO2), use the <code>Serial1</code> object.</p>
+   <p>All Arduino Stream functions, like <code>read, write, print, println, ...</code> are supported as well.</p>
+   <h4>I²C and SPI</h4>
+   <p>You can just use the default Arduino library syntax, like you normally would.</p>
+   <h2>Sharing CPU time with the RF part</h2>
+   <p>One thing to keep in mind while writing programs for the ESP8266 is that your sketch has to share resources (CPU time and memory) with the Wi-Fi- and TCP-stacks (the software that runs in the background and handles all Wi-Fi and IP connections). <br>
+    If your code takes too long to execute, and don’t let the TCP stacks do their thing, it might crash, or you could lose data. It’s best to keep the execution time of you loop under a couple of hundreds of milliseconds.</p>
+   <p>Every time the main loop is repeated, your sketch yields to the Wi-Fi and TCP to handle all Wi-Fi and TCP requests.</p>
+   <p>If your loop takes longer than this, you will have to explicitly give CPU time to the Wi-Fi/TCP stacks, by using including <code>delay(0);</code> or <code>yield();</code>. If you don’t, network communication won’t work as expected, and if it’s longer than 3 seconds, the soft WDT (Watch Dog Timer) will reset the ESP. If the soft WDT is disabled, after a little over 8 seconds, the hardware WDT will reset the chip.</p>
+   <p>From a microcontroller’s perspective however, 3 seconds is a very long time (240 million clockcycles), so unless you do some extremely heavy number crunching, or sending extremely long strings over Serial, you won’t be affected by this. Just keep in mind that you add the <code>yield();</code> inside your <code>for</code> or <code>while</code> loops that could take longer than, say 100ms.</p>
+   <h2>Sources</h2>
+   <p>This is where I got most of my information to writ this article, there’s some more details on the GitHub pages, if you’re into some more advanced stuff, like EEPROM or deep sleep etc.</p>
+   <ul>
+       <li> <a href="https://github.com/esp8266/Arduino/issues/2942">https://github.com/esp8266/Arduino/issues/2942</a> </li>
+       <li> <a href="https://github.com/esp8266/Arduino/pull/2533/files">https://github.com/esp8266/Arduino/pull/2533/files</a> </li>
+       <li> <a href="https://github.com/esp8266/Arduino/blob/master/doc/libraries.md">https://github.com/esp8266/Arduino/blob/master/doc/libraries.md</a> </li>
+       <li> <a href="https://github.com/esp8266/Arduino/blob/master/doc/reference.md">https://github.com/esp8266/Arduino/blob/master/doc/reference.md</a> </li>
+       <li> <a href="https://github.com/esp8266/Arduino/blob/master/doc/boards.md">https://github.com/esp8266/Arduino/blob/master/doc/boards.md</a> </li>
+   </ul>
+    

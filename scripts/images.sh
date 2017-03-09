@@ -15,7 +15,7 @@ from=(	"716"
 	"808"
 	"811"
 	"812")
-to=(	"Vreg.png" 
+to=(	"VReg.png" 
 	"ESP8266-2.png"
 	"reset_without_diode.png"
 	"without_diode.png"

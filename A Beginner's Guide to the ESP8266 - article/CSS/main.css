@@ -137,6 +137,26 @@ div.back>a:hover, div.next>a:hover{
     color:#777;
     text-decoration: none;
 }
+div.backArr {
+    position:fixed;
+    left:3%;
+    top:50vh;
+    margin-left:-12px;
+    margin-top:-12px;
+    z-index:2;
+}
+div.nextArr {
+    position:fixed;
+    right:3%;
+    top:50vh;
+    margin-right:-12px;
+    margin-top:-12px;
+    z-index:2;
+}
+div.backArr>a:hover, div.backArr>a, divArr.next>a:hover, div.nextArr>a{
+    color:#777;
+    text-decoration: none;
+}
 
 footer {
     color: #444;

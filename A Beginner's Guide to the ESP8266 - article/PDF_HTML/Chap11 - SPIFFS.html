@@ -1,0 +1,256 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/PDF.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <article>
+
+   <h2>SPI Flash File System<br>
+    </h2>
+   <div>
+        Up until now, we've always included the HTML for our web pages as string literals in our sketch. This makes our code very hard to read, and you'll run out of memory rather quickly.
+   </div>
+   <div>
+        If you remember the introduction, I mentioned the Serial Peripheral Interface Flash File System, or SPIFFS for short. It's a light-weight file system for microcontrollers with an SPI flash chip. The on-board flash chip of the ESP8266 has plenty of space for your webpages, especially if you have the 1MB, 2MB or 4MB version.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        SPIFFS let's you access the flash memory as if it was a normal file system like the one on your computer (but much simpler of course): you can read and write files, create folders ...
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        The easiest way to learn how to use SPIFFS is to look at some examples. But a file server with no files to serve is pretty pointless, so I'll explain how to upload files to the SPIFFS first.
+   </div>
+   <h3>Uploading files to SPIFFS</h3>
+   <div>
+        To select the right files to upload, you have to place them in a folder called <i>data</i>, inside the sketch folder of your project: Open your sketch in the Arduino IDE, and hit CTRL+K. Wait for a file explorer window to open, and create a new folder named <i>data</i>. Copy your files over to this folder. (Only use small files like text files or icons. There's not enough space for large photos or videos.)
+   </div>
+   <div>
+        Next, select all files in the folder (CTRL+A) and check the size of all files combined (don't forget subfolders). Go to the Arduino IDE again, and under Tools &gt; Flash Size, select an option with the right flash size for your board, and a SPIFFS size that is larger than the size of your data folder.
+   </div>
+   <div>
+        Then upload the sketch. When that's finished, make sure that the Serial Monitor is closed, then open the <i>Tools</i> menu, and click <i>ESP8266 sketch data upload</i>. If your ESP has auto-reset and auto-program, it should work automatically, if you don't have auto-program, you have to manually enter program mode before uploading the data to SPIFFS. The procedure is exactly the same as entering program mode before uploading a sketch.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        If you get an error saying&nbsp;
+       <pre>SPIFFS_write error(-10001): File system is full</pre>
+        , this means that your files are too large to fit into the SPIFFS memory. Select a larger SPIFFS size under Tools &gt; Flash Size, or delete some files. <br>
+        Even if your computer says that the files are smaller than the selected SPIFFS size, you can still get this error: this has to do with block sizes, and metadata like file and folder names that take up space as well.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        If you change the SPIFFS size, you have to reupload your sketch, because when you change the SPIFFS size, the memory location will be different. The program has to know the updated SPIFFS address offset to be able to read the files.
+   </div>
+   <h3>SPIFFS File Server</h3>
+   <div>
+        The following example is a very basic file server: it just takes the URI of the HTTP request, checks if the URI points to a file in the SPIFFS, and if it finds the file, it sends it as a response.
+   </div>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">WiFiClient</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266mDNS</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><b><span style="color: #d35400;">ESP8266WebServer</span></b><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">FS</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;<span style="color: #434f54;">// Include the SPIFFS library</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<b><span style="color: #d35400;">ESP8266WebServer</span></b> <span style="color: #000000;">server</span><span style="color: #000000;">(</span><span style="color: #000000;">80</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create a webserver object that listens for HTTP request on port 80</span>
+
+<span style="color: #00979c;">String</span> <span style="color: #000000;">getContentType</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span> <span style="color: #000000;">filename</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// convert the file extension to the MIME type</span>
+<span style="color: #00979c;">bool</span> <span style="color: #000000;">handleFileRead</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span> <span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// send the right file to the client (if it exists)</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_1"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_1"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// add Wi-Fi networks you want to connect to</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_2"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_2"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_3"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_3"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">250</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">'.'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">SSID</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Tell us what network we're connected to</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><b><span style="color: #d35400;">MDNS</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"esp8266"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the mDNS responder for esp8266.local</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"mDNS responder started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span> <span style="color: #5e6d03;">else</span> <span style="color: #000000;">{</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Error setting up MDNS responder!"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<span style="color: #000000;">SPIFFS</span><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the SPI Flash Files System</span>
+ &nbsp;
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">onNotFound</span><span style="color: #000000;">(</span><span style="color: #000000;">[</span><span style="color: #000000;">]</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If the client requests any URI</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #434f54;">!</span><span style="color: #000000;">handleFileRead</span><span style="color: #000000;">(</span><span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">uri</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// send it if it exists</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">send</span><span style="color: #000000;">(</span><span style="color: #000000;">404</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"404: Not Found"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// otherwise, respond with a 404 (Not Found) error</span>
+ &nbsp;<span style="color: #000000;">}</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Actually start the server</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"HTTP server started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #00979c;">void</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #d35400;">handleClient</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">String</span> <span style="color: #000000;">getContentType</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span> <span style="color: #000000;">filename</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// convert the file extension to the MIME type</span>
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".html"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/html"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".css"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/css"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".js"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"application/javascript"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".ico"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"image/x-icon"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">bool</span> <span style="color: #000000;">handleFileRead</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span> <span style="color: #000000;">path</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// send the right file to the client (if it exists)</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"handleFileRead: "</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">path</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"/"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">path</span> <span style="color: #434f54;">+=</span> <span style="color: #005c5f;">"index.html"</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If a folder is requested, send the index file</span>
+ &nbsp;<span style="color: #00979c;">String</span> <span style="color: #000000;">contentType</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">getContentType</span><span style="color: #000000;">(</span><span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Get the MIME type</span>
+ &nbsp;<span style="color: #5e6d03;">if</span> <span style="color: #000000;">(</span><span style="color: #000000;">SPIFFS</span><span style="color: #434f54;">.</span><span style="color: #d35400;">exists</span><span style="color: #000000;">(</span><span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If the file exists</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">File</span> <span style="color: #000000;">file</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">SPIFFS</span><span style="color: #434f54;">.</span><span style="color: #d35400;">open</span><span style="color: #000000;">(</span><span style="color: #000000;">path</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"r"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Open it</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">size_t</span></b> <span style="color: #000000;">sent</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #000000;">streamFile</span><span style="color: #000000;">(</span><span style="color: #000000;">file</span><span style="color: #434f54;">,</span> <span style="color: #000000;">contentType</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// And send it to the client</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">file</span><span style="color: #434f54;">.</span><span style="color: #d35400;">close</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Then close the file again</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #00979c;">true</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\tFile Not Found"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #00979c;">false</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If the file doesn't exist, return false</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        As you can see, we don't use
+       <pre>server.on</pre>
+        in this example. Instead, we use
+       <pre>server.onNotFound</pre>
+        : this will match any URI, since we didn't declare any specific URI handlers like in the previous server examples.
+   </div>
+   <div>
+        When a URI is requested, we call the function
+       <pre>handleFileRead</pre>
+        . This function checks if the URI of the HTTP request is the path to an existing file in the SPIFFS. If that's the case, it sends the file back to the client. If the path doesn't exist, it returns false, and a 404 (Not Found) HTTP status will be sent.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        The MIME type for the different files is based on the file extension.
+   </div>
+   <div>
+        You could add other file types as well. For instance:
+   </div>
+   <div>
+       <pre><code><span style="color: #00979c;">String</span> <span style="color: #000000;">getContentType</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span> <span style="color: #000000;">filename</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+ &nbsp;<span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".htm"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/html"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".html"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/html"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".css"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/css"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".js"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"application/javascript"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".png"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"image/png"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".gif"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"image/gif"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".jpg"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"image/jpeg"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".ico"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"image/x-icon"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".xml"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/xml"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".pdf"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"application/x-pdf"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".zip"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"application/x-zip"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".gz"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"application/x-gzip"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        This example is adapted from the <a href="https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WebServer/examples/FSBrowser">FSBrowser example</a> by Hristo Gochkov.
+   </div>
+   <h3>Compressing files</h3>
+   <div>
+        The ESP8266's flash memory isn't huge, and most text files, like html, css etc. can be compressed by quite a large factor. Modern web browsers accept compressed files as a response, so we'll take advantage of this by uploading compressed versions of our html and icon files to the SPIFFS, in order to save space and bandwidth.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        To do this, we need to add the GNU zip file type to our list of MIME types:
+   </div>
+   <div>
+       <pre><code><span style="color: #00979c;">String</span> <span style="color: #000000;">getContentType</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span> <span style="color: #000000;">filename</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span>
+  <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".html"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/html"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".css"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/css"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".js"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"application/javascript"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".ico"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"image/x-icon"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">else</span> <span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">filename</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">".gz"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"application/x-gzip"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #005c5f;">"text/plain"</span><span style="color: #000000;">;</span>
+<span style="color: #000000;">}</span></code></pre>
+   </div>
+   <div>
+        And we need to change our&nbsp;
+       <pre>handleFileRead</pre>
+        &nbsp;function as well:
+   </div>
+   <div>
+       <pre><code><span style="color: #00979c;">bool</span> <span style="color: #000000;">handleFileRead</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span> <span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span> &nbsp;<span style="color: #434f54;">// send the right file to the client (if it exists)</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"handleFileRead: "</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">path</span><span style="color: #434f54;">.</span><span style="color: #d35400;">endsWith</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"/"</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> <span style="color: #000000;">path</span> <span style="color: #434f54;">+=</span> <span style="color: #005c5f;">"index.html"</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If a folder is requested, send the index file</span>
+ &nbsp;<span style="color: #00979c;">String</span> <span style="color: #000000;">contentType</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">getContentType</span><span style="color: #000000;">(</span><span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Get the MIME type</span>
+ &nbsp;<span style="color: #00979c;">String</span> <span style="color: #000000;">pathWithGz</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">path</span> <span style="color: #434f54;">+</span> <span style="color: #005c5f;">".gz"</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">SPIFFS</span><span style="color: #434f54;">.</span><span style="color: #d35400;">exists</span><span style="color: #000000;">(</span><span style="color: #000000;">pathWithGz</span><span style="color: #000000;">)</span> <span style="color: #434f54;">||</span> <span style="color: #000000;">SPIFFS</span><span style="color: #434f54;">.</span><span style="color: #d35400;">exists</span><span style="color: #000000;">(</span><span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">{</span> &nbsp;<span style="color: #434f54;">// If the file exists, either as a compressed archive, or normal</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">if</span><span style="color: #000000;">(</span><span style="color: #000000;">SPIFFS</span><span style="color: #434f54;">.</span><span style="color: #d35400;">exists</span><span style="color: #000000;">(</span><span style="color: #000000;">pathWithGz</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// If there's a compressed version available</span>
+ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #000000;">path</span> <span style="color: #434f54;">+=</span> <span style="color: #005c5f;">".gz"</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Use the compressed version</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">File</span> <span style="color: #000000;">file</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">SPIFFS</span><span style="color: #434f54;">.</span><span style="color: #d35400;">open</span><span style="color: #000000;">(</span><span style="color: #000000;">path</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"r"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Open the file</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">size_t</span></b> <span style="color: #000000;">sent</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">server</span><span style="color: #434f54;">.</span><span style="color: #000000;">streamFile</span><span style="color: #000000;">(</span><span style="color: #000000;">file</span><span style="color: #434f54;">,</span> <span style="color: #000000;">contentType</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send it to the client</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #000000;">file</span><span style="color: #434f54;">.</span><span style="color: #d35400;">close</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Close the file again</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\tSent file: "</span><span style="color: #000000;">)</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #00979c;">true</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">String</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\tFile Not Found: "</span><span style="color: #000000;">)</span> <span style="color: #434f54;">+</span> <span style="color: #000000;">path</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">return</span> <span style="color: #00979c;">false</span><span style="color: #000000;">;</span> &nbsp;&nbsp;                                       <span style="color: rgb(67, 79, 84);">// If the file doesn't exist, return false</span>
+<span style="color: #000000;">}</span>
+</code></pre>
+   </div>
+   <div>
+        Now, try compressing some of the files to the GNU zip format (.gz), and uploading them to SPIFFS. Or you can just download the new data folder (unzip it first).
+   </div>
+   <div>
+        Every time a client requests a certain file, the ESP will check if a compressed version is available. If so, it will use that instead of the uncompressed file. The output in the Serial Monitor should look something like this:
+   </div>
+   <pre><code>handleFileRead: /
+	Sent file: /index.html.gz
+handleFileRead: /main.css
+	Sent file: /main.css
+handleFileRead: /JavaScript.js
+	Sent file: /JavaScript.js
+handleFileRead: /folder/JavaScript.js
+	Sent file: /folder/JavaScript.js
+handleFileRead: /favicon.ico
+	Sent file: /favicon.ico.gz</code></pre>
+   <div>
+        &nbsp;It automatically detected that it had to send the compressed versions of index.html and favicon.ico.
+       <div>
+            <br>
+       </div>
+   </div>
+    
+        </article>
+    </body>
+</html>

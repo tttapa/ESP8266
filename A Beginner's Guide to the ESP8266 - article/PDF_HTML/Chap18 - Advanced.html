@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/PDF.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <article>
+
+   <h2>Advanced</h2>
+   <h3>DNS Captive Portal</h3>
+   <div>
+        When using the ESP8266 in access point mode, you probably want to redirect users to the right page. You can do this by creating a captive portal, using DNS. It's basically just a DNS server that will convert all host names to the ESP's own IP address.&nbsp;
+   </div>
+   <div>
+        This technique is also used by open Wi-Fi networks that redirect you to a login page before you can start browsing the internet.
+   </div>
+   <h3>Wi-Fi configuration</h3>
+   <div>
+        If you want to be able to change the Wi-Fi connection settings without re-uploading the code, you could take a look at the <a href="https://github.com/tzapu/WiFiManager">WiFiManager library</a> by <i>tzapu</i>. This will try to connect to known networks, but if it fails, it will start a Wi-Fi access point. You can then connect to this access point, open the browser, and pick a network to connect to. The new configuration is saved.
+   </div>
+   <div>
+        The WiFiManager library uses a captive portal to present you with the right Wi-Fi settings page.
+   </div>
+   <div>
+        You could also implement a Wi-Fi manager yourself, or you can just check out the example that comes with the ESP8266 Arduino Core (Examples &gt; DNSServer &gt; CaptivePortalAdvanced).
+   </div>
+   <h3>I²S</h3>
+   <div>
+        The ESP8266 has an I²S bus on the RXD pin. It can run at 80MHz, and has DMA (direct memory access), so it's really fast. Its main purpose is to <a href="https://www.youtube.com/watch?v=JsRsNDIBQsM">connect an I²S DAC</a> (Digital to Analog Converter) to have an audio output, but you can use it for other things as well.&nbsp;
+   </div>
+   <div>
+        For example, CNLohr managed to <a href="https://www.youtube.com/watch?v=bcez5pcp55w">transmit analog television</a>, by connecting an antenna wire to the I²S pin. You can also use it to <a href="https://www.youtube.com/watch?v=6zqGwxqJQnw">control&nbsp;WS2812Bs LEDs</a>. You can even use it to <a href="https://www.youtube.com/watch?v=XKnyAYKP434">communicate over Ethernet</a> (not really useful, and definitely not recommended, but it works).
+   </div>
+   <div>
+        Another great use for the I²S bus is <a href="https://www.youtube.com/watch?v=tURU9UKbYXw&amp;t=0s">outputting data to shift registers</a>. This gives you extra outputs that are reasonably fast, for things like LEDs or stepper motors.
+   </div>
+   <h3>Other examples</h3>
+   <div>
+        You can find lots of other examples in the Arduino IDE, I'd recommend to check those out as well.
+   </div>
+   <h3>YouTube</h3>
+   <div>
+        There's some great channels on YouTube that do amazing things with the ESP8266. Here's a short list of the ones I'm currently following. If you've got more recommendation, just leave a comment!
+   </div>
+   <div>
+       <ul>
+           <li><a href="https://www.youtube.com/channel/UCu7_D0o48KbfhpEohoP7YSQ">Andreas Spiess</a></li>
+           <li><a href="https://www.youtube.com/user/CNLohr">CNLohr</a></li>
+           <li><a href="https://www.youtube.com/user/acrobotic">Acrobotic</a></li>
+           <li><a href="https://www.youtube.com/channel/UCM5GHEXaQKoHH-4cyXiSjbA">Miika Kurkela</a></li>
+       </ul>
+   </div>
+    
+        </article>
+    </body>
+</html>

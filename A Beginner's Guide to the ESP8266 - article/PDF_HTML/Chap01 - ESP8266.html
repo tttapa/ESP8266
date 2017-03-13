@@ -1,0 +1,104 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/PDF.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <article>
+
+   <h1 style="font-size:40px;margin-bottom:0;">A Beginner's Guide to the ESP8266<br>
+    </h1>
+<i style="font-size:0.9em;color:#888;margin-bottom:2em;display:block">Pieter P,&emsp;08-03-2017</i>
+   <div>
+        Some time ago, I wrote <a href="http://www.instructables.com/id/A-Beginners-Guide-to-Arduino/">a Beginner's Guide to Arduino</a>&nbsp;that seems to be very popular, so I decided to create a follow-up: <b>A Beginner's Guide to the ESP8266</b>. That's right, a tutorial on how to use the world's most popular $3 Wi-Fi board.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        This is going to be a very in-depth tutorial, covering some networking concepts as well. If you're a beginner, and just want to go straight to the more exciting Wi-Fi part, feel free to do so, I included short <i>TL;DR's </i>in the longer, more technical parts.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        A short overview of what I'll cover in this article:&nbsp;
+   </div>
+   <div>
+       <ol>
+           <li><b>What is an ESP8266?</b>&nbsp;A short overview of what an ESP8266 is, and what you can do with it</li>
+           <li><b>Deciding on what board to buy</b>: There's loads of different ESP8266 available these days, finding the one that's best for you can be hard</li>
+           <li><b>Installing the software</b>: you need to install some software to program the ESP8266, and maybe a USB driver</li>
+           <li><b>Setting up the hardware</b>: some modules and boards need some external components</li>
+           <li><b>The ESP8266 as a microcontroller</b>: the ESP8266 can be used as a normal microcontroller, just like an Arduino</li>
+           <li><b>Network protocols</b>: Before we start using the Wi-Fi capabilities of the ESP8266, I'll teach you some of the network protocols involved</li>
+           <li><b>Setting up a Wi-Fi connection</b>: That's probably why you're reading this, right?</li>
+           <li><b>Name resolution</b>: Find the ESP8266 on your local network using mDNS</li>
+           <li><b>Setting up a simple web server</b>: This enables you to add web pages to the ESP8266, and browse them from your computer or phone</li>
+           <li><b>Setting up an advanced web server</b>: a more advanced server with a real file system that allows you to upload new files over Wi-Fi</li>
+           <li><b>OTA - uploading programs over Wi-Fi</b>: You don't have to upload programs over USB, you can use Wi-Fi instead</li>
+           <li><b>Wirelessly controlling your RGB lighting</b>: Change the color of your LED strips using your phone or computer</li>
+           <li><b>Getting the time</b>: Connect to a time server using NTP and sync the ESP's clock</li>
+           <li><b>Monitoring sensors</b>: log the temperature in your living room, save it in flash memory and show it in a fancy graph in your browser</li>
+           <li><b>Getting email notifications</b>: Turn on a notification light when you've got unread emails</li>
+           <li><b>Advanced features</b>: use DNS, captive portals, Wi-Fi connector libraries, OSC ...</li>
+       </ol>
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        This guide expects some basic knowledge of microcontrollers like the Arduino. If that's something you're not already familiar with, I'd recommend you to read my <a href="https://www.instructables.com/id/A-Beginners-Guide-to-Arduino/">Beginner's Guide to Arduino</a> first, it covers a lot of the basics that I won't go into in this article.
+   </div>
+   <div>
+        I really want to focus on the ESP8266-specific things, like Wi-Fi and other network protocols, the ESP's hardware, software, IoT, etc ...
+   </div>
+   <h3>What is an ESP8266?</h3>
+   <div>
+        The ESP8266 is a System on a Chip (SoC), manufactured by the Chinese company <a href="https://espressif.com/en/">Espressif</a>. It consists of a Tensilica L106 32-bit <b>micro controller</b> unit (MCU) and a <b>Wi-Fi transceiver</b>. It has <b>11 GPIO pins</b>* (General Purpose Input/Output pins), and an <b>analog input</b> as well. This means that you can program it like any normal Arduino or other microcontroller. And on top of that, you get Wi-Fi communication, so you can use it to connect to your Wi-Fi network, connect to the Internet, host a web server with real web pages, let your smartphone connect to it, etc ... The possibilities are endless! It's no wonder that this chip has become the most popular IOT device available.&nbsp;
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        There are many different modules available, standalone modules like the <a href="http://en.ai-thinker.com/html/Products/WIFI_Module/ESP_01-14Series/">ESP-## series</a> by AI Thinker, or complete development boards like the <a href="http://nodemcu.com/index_en.html">NodeMCU DevKit</a>&nbsp;or the&nbsp;<a href="http://www.wemos.cc/">WeMos D1</a>. Different boards may have different pins broken out, have different Wi-Fi antennas, or a different amount of flash memory on board.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        <small>(*) The ESP8266 chip itself has 17 GPIO pins, but 6 of these pins (6-11) are used for communication with the on-board flash memory chip.</small>
+   </div>
+   <h3>Programming</h3>
+   <div>
+        There are different ways to program the ESP8266, but I'll only cover the method using the Arduino IDE. This is really easy for beginners, and it's a very familiar environment if you've used Arduino boards before.&nbsp;
+   </div>
+   <div>
+        Just keep in mind that it's not limited to this option: there's also an official SDK available to program it in real C, this is very useful if you want to optimize your code or do some advanced tricks that aren't supported by the Arduino IDE. Another possibility is to flash it with a <a href="https://github.com/nodemcu/nodemcu-firmware">LUA</a> interpreter, so you can upload and run LUA scripts. Or maybe you're more familiar with Python? Then you should check out the <a href="http://micropython.org/download#esp8266">MicroPython firmware</a> to interpret MicroPython scripts. I'm sure there's other languages available as well, so just do a quick Google search and write your code in the language of your choice.
+   </div>
+   <h3>Requirements</h3>
+   <div>
+        You'll need a couple of things in order to follow this guide:
+   </div>
+   <div>
+       <ul>
+           <li>An ESP8266 board</li>
+           <li>A computer that can run the Arduino IDE (Windows, Mac or Linux)</li>
+           <li>A USB-to-Serial converter, it is very important that you use a <b>3.3V</b>&nbsp;model*</li>
+           <li>A USB cable</li>
+           <li>A 3.3V power supply or voltage regulator*</li>
+           <li>A Wi-Fi network to connect to</li>
+       </ul>
+       <div>
+            <small>(*) Your board may already include these. More information can be found in the next chapter.</small>
+       </div>
+   </div>
+    
+        </article>
+    </body>
+</html>

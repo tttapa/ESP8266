@@ -1,5 +1,9 @@
 cd ../Raw_HTML/
-mkdir ../PDF_HTML/
+
+if [ ! -e ../PDF_HTML/ ]
+then
+    mkdir ../PDF_HTML/
+fi
 
 arr=( * )
 

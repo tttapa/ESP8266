@@ -1,5 +1,6 @@
 body {
     font-family: 'Roboto', sans-serif;
+    padding: 3em;
 }
 
 img {
@@ -79,7 +80,6 @@ button:focus {
 article {
     box-sizing: border-box;
     background-color: #fff;
-    padding: 3em;
     font-size: 1em;
     text-align: left;
     width: 100%;

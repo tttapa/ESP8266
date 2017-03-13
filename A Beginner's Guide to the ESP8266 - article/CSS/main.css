@@ -3,7 +3,7 @@ body {
     margin: 0px;
     padding: 15px 0px 0px 0px;
     font-family: 'Roboto', sans-serif;
-    color: #444;
+    color: #333;
 }
 
 img {
@@ -92,9 +92,7 @@ button:focus {
 article {
     box-sizing: border-box;
     background-color: #fff;
-    color: #444;
     padding: 3em;
-    font-family: 'Roboto', sans-serif;
     font-size: 1em;
     text-align: left;
     width: 70%;
@@ -103,6 +101,7 @@ article {
     box-shadow: 1px 1px 5px #555;
     position: relative;
     z-index: 1;
+    overflow: hidden;
 }
 
 article a, article  a:visited{
@@ -123,20 +122,12 @@ article a:hover {
 }
 
 div.back {
-    position:fixed;
-    left:3%;
-    top:50vh;
-    margin-left:-12px;
-    margin-top:-12px;
-    z-index:2;
+    float:left;
+    margin-top: 1em;
 }
 div.next {
-    position:fixed;
-    right:3%;
-    top:50vh;
-    margin-right:-12px;
-    margin-top:-12px;
-    z-index:2;
+    float:right;
+    margin-top: 1em;
 }
 div.back>a, div.next>a{
     color:inherit;
@@ -154,6 +145,10 @@ footer {
     text-align: center;
     padding: 6px;
     margin-top: 12px;
+}
+
+hr {
+    margin: 20px auto;
 }
 
 /* --------MOBILE DEVICES-------- */

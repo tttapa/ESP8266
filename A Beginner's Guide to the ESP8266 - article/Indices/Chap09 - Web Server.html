@@ -1,0 +1,294 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/main.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <link href='../CSS/icon.css' rel='stylesheet' type='text/css'>
+        <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <nav>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48" style="position:absolute;top:4px;right: 4px;">
+                    <path d="M0 0h48v48h-48z" fill="none"/>
+                    <path d="M6 36h36v-4h-36v4zm0-10h36v-4h-36v4zm0-14v4h36v-4h-36z"/>
+                </svg>
+                <h2>Index</h2>
+                <ol>
+<li><a href="Chap01 - ESP8266.html">Introduction</a></li>
+<li><a href="Chap02 - Hardware.html">Hardware</a></li>
+<li><a href="Chap03 - Software.html">Software</a></li>
+<li><a href="Chap04 - Microcontroller.html">Microcontroller</a></li>
+<li><a href="Chap05 - Network Protocols.html">Network protocols</a></li>
+<li><a href="Chap06 - Uploading.html">Uploading</a></li>
+<li><a href="Chap07 - Wi-Fi Connections.html">Wi-Fi connections</a></li>
+<li><a href="Chap08 - mDNS.html">mDNS</a></li>
+<li><b>Web servers</b></li>
+<li><a href="Chap10 - Simple Web Server.html">Simple web server</a></li>
+<li><a href="Chap11 - SPIFFS.html">SPIFFS</a></li>
+<li><a href="Chap12 - Uploading to Server.html">Uploading to the server</a></li>
+<li><a href="Chap13 - OTA.html">OTA</a></li>
+<li><a href="Chap14 - WebSocket.html">WebSocket</a></li>
+<li><a href="Chap15 - NTP.html">NTP</a></li>
+<li><a href="Chap16 - Data Logging.html">Data logging</a></li>
+<li><a href="Chap17 - Email Notifier.html">Email notifier</a></li>
+<li><a href="Chap18 - Advanced.html">Advanced</a></li>
+<li><a href="Chap19 - In Conclusion.html">In conclusion</a></li>
+
+                </ol>
+                <a href="https://github.com/tttapa/ESP8266/raw/master/A%20Beginner's%20Guide%20to%20the%20ESP8266%20-%20article/PDF/A-Beginner's-Guide-to-the-ESP8266.pdf" title="Download the guide as a PDF document (automatically generated)">Download as PDF</a><br>
+                <a href="https://github.com/tttapa/ESP8266/tree/master/Examples" title="Download all example code that's used in this guide">Download examples</a>
+            </div>
+        </nav>
+        <article>
+
+   <h2>ESP8266 Web Server<br>
+    </h2>
+   <div>
+        Being able to ping the ESP is quite an achievement if you look at it from a technical point of view, but for most people, it's not that exciting, and not really useful.
+   </div>
+   <div>
+        In this chapter, I'll cover the basics of a web server, and teach you how to host a web page on the ESP.
+   </div>
+   <div>
+        <br>
+   </div>
+   <h3>Web servers</h3>
+   <div>
+        A web server is an Internet-connected device that stores and serves files. Clients can request such a file or another piece of data, and the server will then send the right data/files back to the client. Requests are made using HTTP.&nbsp;
+   </div>
+   <h3>HTTP</h3>
+   <div>
+        HTTP or the Hypertext Transfer Protocol is the text-based protocol used to communicate with (web) servers. There are multiple HTTP request methods, but I'll only cover the two most widely used ones: GET and POST.&nbsp;
+   </div>
+   <h3>HTTP GET</h3>
+   <div>
+        GET requests are used to retrieve data from a server, a web page for instance. It shouldn't change anything on the server, it just <i>gets</i>&nbsp;the data from the server, without side effects.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        When you open a webpage in your browser, it will take the URL and put it in an HTTP GET request. This is just plain text. Then it will send the request to the right server using TCP. The server will read the request, check the URL, and send the right HTTP response for that URL back to the browser.
+   </div>
+   <h4>The anatomy of a GET request</h4>
+   <div>
+        The most important parts of a GET request are the <b>request line</b>&nbsp;and the <b>host header</b>. Let's take a look at an example:
+   </div>
+   <div>
+        If you click the following link:&nbsp;<a href="https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html">https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html</a>, your browser will send out the following HTTP request:
+   </div>
+   <div>
+       <pre><code>GET /Protocols/rfc2616/rfc2616-sec5.html HTTP/1.1
+Host: www.w3.org
+Connection: keep-alive
+Pragma: no-cache
+Cache-Control: no-cache
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+DNT: 1
+Referer: https://www.google.be/
+Accept-Encoding: gzip, deflate, sdch, br
+Accept-Language: en-US,en;q=0.8</code></pre>
+   </div>
+   <div>
+        The first line is the <b>request line</b>: it contains the <b>request method:</b>&nbsp;GET, in this case, the <b>URI</b> or Uniform Resource Identifier: /Protocols/rfc2616/rfc2616-sec5.html, and the HTTP version: 1.1.
+   </div>
+   <div>
+        The second line is the <b>host header</b>, it specifies the domain name of the host (server).
+   </div>
+   <div>
+        There are many other headers as well, but they're not really important when using an ESP8266.
+   </div>
+   <div>
+        Most servers will check if the URI is a file on their file system, and if that's the case, they'll send that file as a response.
+   </div>
+   <h4>Viewing HTTP headers in the browser</h4>
+   <div>
+        If you want to check the headers your browser sends, you can press F12, go to the network tab, reload the page, and click the request you want to inspect. If you want, you can click 'view source', this will show you the actual HTTP text.
+   </div>
+   <div>
+        Here's what that looks like in Chrome:
+   </div>
+    <a href="../Images/http_chrome.png" title="http_chrome.png"><img src="../Images/thumbs/http_chrome.png" alt="http_chrome.png"></a>
+   <div>
+       <h4>Sending extra information to the server</h4>
+       <div>
+            Sometimes, you might want to add extra information to the GET request. You can send key-value pairs by adding a question mark (?) to the URI, followed by key=value. Multiple pairs are separated by an ampersand (&amp;).
+       </div>
+       <div>
+            For example:
+       </div>
+       <div>
+           <pre><code>GET /get-phone-number.php?firstName=John&amp;lastName=Doe HTTP/1.1
+Host: www.phonebook.example.com
+...</code></pre>
+       </div>
+       <div>
+            If you use any special characters in the key or value names, you have to <a href="http://www.w3schools.com/tags/ref_urlencode.asp">URL-encode</a> them.
+       </div>
+       <div>
+           <h4>HTTP POST</h4>
+           <div>
+                POST requests are used to send data to the server, for example, to send your user name and password to the server when you log in, or when you upload a photo. Unlike GET, POST can change the data on the server or the state of the server.&nbsp;<br>
+                POST has a body that can contain data that is sent to the server.
+           </div>
+           <h4>The anatomy of a POST request</h4>
+           <div>
+                For example, the login page of your favorite site might send something like this when you enter your credentials and click the <i>login</i>&nbsp;button:
+           </div>
+           <div>
+               <pre><code>POST /login.php HTTP/1.1
+Host: www.example.com
+Connection: keep-alive
+Content-Length: 480
+Origin: http://www.example.com
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryQNEJOasMvgAOg8Kt
+...</code></pre>
+           </div>
+           <div>
+                As you can see, the <b>request line </b>now has the POST method in it, and is still followed by a URI, /login.php, and the HTTP version, 1.1. The <b>host header</b> still contains just the domain name.
+           </div>
+           <div>
+                <br>
+           </div>
+           <div>
+                The real difference is the <b>request body</b>: a GET request has no payload, while you can add a lot of data to the body of a POST request. This data could be normal key-value pairs, like a username and a password, or actual files that are being uploaded. <br>
+           </div>
+           <div>
+               <div>
+                    Also note the&nbsp;Content-Type header: it tells the server what kind of data can be found in the body of the POST request.
+               </div>
+           </div>
+           <div>
+                <br>
+           </div>
+           <div>
+                Let's take a look at the body of the login example:&nbsp;
+           </div>
+           <div>
+               <pre><code>------WebKitFormBoundaryQNEJOasMvgAOg8Kt
+Content-Disposition: form-data; name="username"
+
+John Doe
+------WebKitFormBoundaryQNEJOasMvgAOg8Kt
+Content-Disposition: form-data; name="password"
+
+p@ssw0rd123
+------WebKitFormBoundaryQNEJOasMvgAOg8Kt
+Content-Disposition: form-data; name="token"
+
+9i9ZoLHl5pkRAeuKCEu76TbaCnMphwYkPEovEUY9PHk=
+------WebKitFormBoundaryQNEJOasMvgAOg8Kt--</code></pre>
+           </div>
+           <div>
+               <div>
+                    As you can see, there are three parameters inside the body, every parameter has a name (e.g. username), and a value (e.g. John Doe).
+               </div>
+               <div>
+                    <br>
+               </div>
+               <div>
+                    You could also use the same syntax we used before when adding parameters to a GET request:
+               </div>
+               <div>
+                   <pre><code>POST /add-user.php HTTP/1.1
+Host: www.example.com
+Content-Length: 27
+Content-Type: application/x-www-form-urlencoded
+...</code></pre>
+               </div>
+               <div>
+                    And the payload:
+               </div>
+               <div>
+                   <pre><code>firstName=John&amp;lastName=Doe</code></pre>
+               </div>
+               <div>
+                    As you can see, the <code>Content-Type</code>header is different, indicating that the encoding of the values in the payload is different.
+               </div>
+               <div>
+                    <br>
+               </div>
+               <h3>HTTP status codes</h3>
+               <div>
+                    A server should answer all requests with an HTTP status code. This is a 3-digit number indicating if the request was successful or telling the client what went wrong. Here's a table with some of the most important and useful ones.
+               </div>
+               <div>
+                   <table style="box-sizing: border-box; border-spacing: 0px; border-collapse: collapse; margin-top: 0px; margin-bottom: 16px; display: block; overflow: auto; color: rgb(51, 51, 51);">
+                       <thead style="box-sizing: border-box;">
+                           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+                               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Status Code</th>
+                               <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">Meaning</th>
+                           </tr>
+                       </thead>
+                       <tbody style="box-sizing: border-box;">
+                           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">200</td>
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">OK: the request was successful</td>
+                           </tr>
+                           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">303</td>
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">See Other: used to redirect to a different URI, after a POST request, for instance</td>
+                           </tr>
+                           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">400</td>
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">Bad Request: the server couldn't understand the request, because the syntax was incorrect</td>
+                           </tr>
+                           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">401</td>
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">Unauthorized: user authentication is required</td>
+                           </tr>
+                           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">403</td>
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">Forbidden: the server refuses to execute the request, authorization won't help</td>
+                           </tr>
+                           <tr style="box-sizing: border-box; background-color: rgb(248, 248, 248); border-top: 1px solid rgb(204, 204, 204);">
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">404</td>
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">Not Found: the requested URI was not found</td>
+                           </tr>
+                           <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">500</td>
+                               <td style="padding: 6px 13px; box-sizing: border-box; border: 1px solid rgb(221, 221, 221);">Internal Server Error: The server encountered an unexpected condition and couldn't fulfill the request</td>
+                           </tr>
+                       </tbody>
+                   </table>
+               </div>
+               <h3>TCP &amp; UDP Ports</h3>
+               <div>
+                    In most cases, one device has many different services, for example, a web server, an email server, an FTP server, a Spotify streaming service, ...
+               </div>
+               <div>
+                    If the device had just an IP address, it would be impossible to know which application a packet was sent to. That's why every service has a port number. It's an identifier for all different services or applications on a single device. In the example above, the web server will only listen for requests on port 80, the email server only on port 25, the FTP server only on port 20, Spotify will only receive streams on port 4371 ...
+               </div>
+               <div>
+                    To specify a certain port, you can use a colon after the IP address of after the domain name. But most of the time, you don't have to add it explicitly. For example, all web servers listen on port 80, so a web browser will always connect to port 80.
+               </div>
+               <ul>
+                   <li><a href="http://stackoverflow.com/questions/176264/what-is-the-difference-between-a-uri-a-url-and-a-urn">http://stackoverflow.com/questions/176264/what-is-the-difference-between-a-uri-a-url-and-a-urn</a><br>
+                    </li>
+                   <li><a href="https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html">https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html</a><br>
+                    </li>
+                   <li><a href="https://en.wikipedia.org/wiki/List_of_HTTP_status_codes">https://en.wikipedia.org/wiki/List_of_HTTP_status_codes</a><br>
+                    </li>
+               </ul>
+           </div>
+           <div>
+                <br>
+           </div>
+       </div>
+   </div>
+    
+<hr>
+            <div class="back"><a href="Chap08 - mDNS.html">← Previous chapter</a></div>
+            <div class="next"><a href="Chap10 - Simple Web Server.html">Next chapter →</a></div>
+            <div class="backArr"><a href="Chap08 - mDNS.html"><i class="material-icons">arrow_back</i></a></div>
+            <div class="nextArr"><a href="Chap10 - Simple Web Server.html"><i class="material-icons">arrow_forward</i></a></div>
+        </article>
+    </body>
+</html>

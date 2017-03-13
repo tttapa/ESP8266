@@ -53,10 +53,6 @@ pre.lineNumbers>code:before {
     text-align: right;
 }
 
-a {
-    text-decoration: none;
-}
-
 td {
     padding: 8px 8px;
     font-size: 14px;
@@ -104,21 +100,18 @@ article {
     overflow: hidden;
 }
 
-article a, article  a:visited{
+a, a:visited{
     text-decoration: underline;
     color: inherit;
-    text-decoration-color: #ddd;
     cursor: pointer;
 }
 
-div#dbpage a:visited,
-div.articleDiv a:visited {
-    color: inherit;
-    text-decoration-color: #ddd;
+a:hover {
+    color: #aaa;
 }
 
-article a:hover {
-    color: #aaa;
+li>a {
+    text-decoration: none;
 }
 
 div.back {
@@ -171,6 +164,31 @@ hr {
     margin: 20px auto;
 }
 
+nav {
+    box-sizing: border-box;
+    background-color: #fff;
+    padding: 32px;
+    text-align: left;
+    z-index: 2;
+    overflow: hidden;
+    box-shadow: 1px 1px 5px #555;
+    height: 100vh;
+    top: 0;
+    left: -228px;
+    width: 260px;
+    position: fixed;
+    transition: left 500ms;
+}
+nav:hover {
+    left: 0 !important;
+}
+nav>div>ol {
+    padding-left: 20px;
+}
+body {
+    margin-left: 32px; 
+}
+
 /* --------MOBILE DEVICES-------- */
 @media screen and (max-width: 1000px) {
     article {
@@ -187,11 +205,13 @@ hr {
     }
     body {
         padding: 0px;
-        margin: 0px;
-        background-image: none !important;
+        margin: 0;
         background-color: #ccc !important;
     }
     td {
         padding: 6px 6px;
         font-size: 12px;
+    }
+    nav {
+        display: none;
     }

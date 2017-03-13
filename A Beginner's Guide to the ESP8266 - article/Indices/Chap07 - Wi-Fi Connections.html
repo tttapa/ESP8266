@@ -1,0 +1,290 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="nl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="Pieter P">
+        <link rel="stylesheet" type="text/css" href="../CSS/main.css">
+        <link href='../CSS/roboto.css' rel='stylesheet' type='text/css'>
+        <link href='../CSS/icon.css' rel='stylesheet' type='text/css'>
+        <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+        <meta name="theme-color" content="#ccc">
+        <title>A Beginner's Guide to the ESP8266</title>
+    </head>
+    <body>
+        <nav>
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48" style="position:absolute;top:4px;right: 4px;">
+                    <path d="M0 0h48v48h-48z" fill="none"/>
+                    <path d="M6 36h36v-4h-36v4zm0-10h36v-4h-36v4zm0-14v4h36v-4h-36z"/>
+                </svg>
+                <h2>Index</h2>
+                <ol>
+<li><a href="Chap01 - ESP8266.html">Introduction</a></li>
+<li><a href="Chap02 - Hardware.html">Hardware</a></li>
+<li><a href="Chap03 - Software.html">Software</a></li>
+<li><a href="Chap04 - Microcontroller.html">Microcontroller</a></li>
+<li><a href="Chap05 - Network Protocols.html">Network protocols</a></li>
+<li><a href="Chap06 - Uploading.html">Uploading</a></li>
+<li><b>Wi-Fi connections</b></li>
+<li><a href="Chap08 - mDNS.html">mDNS</a></li>
+<li><a href="Chap09 - Web Server.html">Web servers</a></li>
+<li><a href="Chap10 - Simple Web Server.html">Simple web server</a></li>
+<li><a href="Chap11 - SPIFFS.html">SPIFFS</a></li>
+<li><a href="Chap12 - Uploading to Server.html">Uploading to the server</a></li>
+<li><a href="Chap13 - OTA.html">OTA</a></li>
+<li><a href="Chap14 - WebSocket.html">WebSocket</a></li>
+<li><a href="Chap15 - NTP.html">NTP</a></li>
+<li><a href="Chap16 - Data Logging.html">Data logging</a></li>
+<li><a href="Chap17 - Email Notifier.html">Email notifier</a></li>
+<li><a href="Chap18 - Advanced.html">Advanced</a></li>
+<li><a href="Chap19 - In Conclusion.html">In conclusion</a></li>
+
+                </ol>
+                <a href="https://github.com/tttapa/ESP8266/raw/master/A%20Beginner's%20Guide%20to%20the%20ESP8266%20-%20article/PDF/A-Beginner's-Guide-to-the-ESP8266.pdf" title="Download the guide as a PDF document (automatically generated)">Download as PDF</a><br>
+                <a href="https://github.com/tttapa/ESP8266/tree/master/Examples" title="Download all example code that's used in this guide">Download examples</a>
+            </div>
+        </nav>
+        <article>
+
+   <h2>Establishing a Wi-Fi connection</h2>
+   <div>
+        Like I mentioned in the previous chapter, the ESP8266 can operate in three different modes: Wi-Fi station, Wi-Fi access point, and both at the same time. We'll start by looking at the configuration of a Wi-Fi station.
+   </div>
+   <div>
+        <br>
+   </div>
+   <h3>Station mode</h3>
+   <h4>Connecting to one specific network</h4>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Include the Wi-Fi library</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">ssid</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">=</span> <span style="color: #005c5f;">"SSID"</span><span style="color: #000000;">;</span>        &nbsp;<span style="color: #434f54;">// The SSID (name) of the Wi-Fi network you want to connect to</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span><span style="color: #434f54;">*</span> <span style="color: #000000;">password</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"PASSWORD"</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// The password of the Wi-Fi network</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b style="font-size: 13px;"><span style="color: rgb(211, 84, 0);">Serial</span></b><span style="font-size: 13px; color: rgb(67, 79, 84);">.</span><span style="font-size: 13px; color: rgb(211, 84, 0);">println</span><span style="font-size: 13px; color: rgb(0, 0, 0);">(</span><span style="font-size: 13px; color: rgb(0, 151, 156);">'\n'</span><span style="font-size: 13px; color: rgb(0, 0, 0);">)</span><span style="font-size: 13px; color: rgb(0, 0, 0);">;</span>
+ &nbsp;
+ &nbsp;<b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">ssid</span><span style="color: #434f54;">,</span> <span style="color: #000000;">password</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Connect to the network</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #000000;">ssid</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">" ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">status</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">1000</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #434f54;">++</span><span style="color: #000000;">i</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> <b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">' '</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connection established!"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #000000;">}</span>
+</code></pre></div>
+   <div>
+       The code to connect to a wireless access point is relatively straightforward: enter the SSID and the password of the network you want to connect to, and call the
+       <pre>WiFi.begin</pre>
+        function. Then wait for the connection to complete, <i>et voilà</i>, your ESP8266 is now connected to your Local Area Network.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Don't believe me? I'll prove it to you: open the Serial monitor (CTRL+SHIFT+M) and upload the sketch. You should see something like this:
+   </div>
+   <pre><code>Connecting to SSID ...
+1 2 3 4 5 6 ...
+
+Connection established!
+IP address: 192.168.1.3</code></pre>
+   <div>
+        Now go to your computer and open up a terminal: On Windows, search for "Command Prompt", on Mac or Linux, search for "Terminal". You could also use the shortcuts: on Windows, hit <i class="fa fa-windows"></i>&nbsp;+&nbsp;R, type "cmd" and hit enter, on Linux, use
+       <pre>CTRL+ALT+T</pre>
+        .
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Next, type
+       <pre>ping</pre>
+        , and then the IP address you received in the Serial monitor. If you're on Mac or Linux, use
+       <pre>CTRL+C</pre>
+        to stop it after a couple of lines. The output should look something like this:
+   </div>
+   <div>
+       <pre style="background: #300A24; color: white"><code><span style="color: lawngreen; font-weight: bold">user@computername</span>:<span style="color: cornflowerblue; font-weight: bold">~</span>$ ping 192.168.1.3
+PING 192.168.1.3 (192.168.1.3) 56(84) bytes of data.
+64 bytes from 192.168.1.3: icmp_seq=1 ttl=128 time=6.38 ms
+64 bytes from 192.168.1.3: icmp_seq=2 ttl=128 time=45.2 ms
+64 bytes from 192.168.1.3: icmp_seq=3 ttl=128 time=69.1 ms
+64 bytes from 192.168.1.3: icmp_seq=4 ttl=128 time=94.0 ms
+64 bytes from 192.168.1.3: icmp_seq=5 ttl=128 time=20.5 ms
+64 bytes from 192.168.1.3: icmp_seq=6 ttl=128 time=7.37 ms
+^C
+--- 192.168.1.3 ping statistics ---
+6 packets transmitted, 6 received, 0% packet loss, time 5003ms
+rtt min/avg/max/mdev = 6.384/40.463/94.047/32.588 ms</code></pre>
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        The ping command sends small packets to the IP address of the ESP8266. When the ESP receives such a packet, it sends it back to the sender. Ping is part of the second layer of the TCP/IP stack, the Internet layer. It relies on both the Data Link layer (Wi-Fi) and the Internet Protocol*.&nbsp;
+   </div>
+   <div>
+        You can see that in the example above, we sent 6 packets to the ESP, and we also received 6 response (echo) packets. This tells us that the Data Link, the Wi-Fi connection, and the Internet Protocol are working correctly.&nbsp;
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        We now know that the ESP can successfully communicate with other devices on the network, and if your local network is online (if it is connected to the Internet via your modem), the ESP can also communicate with any device on the web !
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        Ping is a great tool to check if the ESP (or any device, really) is still connected to the network, and if it's still working fine.
+   </div>
+   <div>
+        One drawback is that IP addresses can change over time, but that's a problem we'll address in one of the following chapters ...
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        <small><em>(*) I'm simplifying things a bit here. Actually, ping is part of the Internet Control Message Protocol (ICMP), that's also part of the second layer, just like the Internet Protocol. Don't worry too much about it, just remember that if you can send ping packets to a device, you can also send IP packets.</em> </small>
+   </div>
+   <div>
+        <small><em><br>
+        </em></small>
+   </div>
+   <div>
+        <small><em><br>
+        </em></small>
+   </div>
+    <a href="../Images/station.png" title="station.png"><img src="../Images/thumbs/station.png" alt="station.png"></a>
+   <div>
+        <br>
+   </div>
+   <div>
+        The device with the antenna serves many different purposes:&nbsp;
+   </div>
+   <div>
+       <ul>
+           <li><b>Access point</b>: Other Wi-Fi devices can connect to it, to be part of the local network.</li>
+           <li><b>Router</b>: It routes IP packets to the right sub-nets so that they will arrive at their destination. E.g. if the computer sends a message that is meant for the ESP over the Ethernet sub-net, the router will send the packet to the Wi-Fi sub-net, because it knows that's where the ESP is.</li>
+           <li><b>Modem</b>: if the router can't find the addressee on the local network, the packet will be passed on to the integrated modem, and it will be sent to the Internet Service Provider over a DSL line, heading for the Internet, where lots of other routers will try to get the packet to the right destination.</li>
+       </ul>
+       <div>
+            But in reality, you don't have to worry too much about it, because it's all done for you, in a fraction of a second without you even noticing it!
+       </div>
+   </div>
+   <div>
+        <br>
+   </div>
+   <h4>Automatically connect to the strongest network</h4>
+   <div>
+        The sketch above might be enough for your specific application, but if you need to be able to connect to multiple Wi-Fi networks, for example the Wi-Fi at home and the Wi-Fi at the office, it won't work.&nbsp;
+   </div>
+   <div>
+        To solve this problem, we'll use the Wi-Fi-Multi library: You can add as many networks as you like, and it automatically connects to the one with the strongest signal.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Include the Wi-Fi library</span>
+<span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #000000;">ESP8266WiFiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;<span style="color: #434f54;">// Include the Wi-Fi-Multi library</span>
+
+<span style="color: #000000;">ESP8266WiFiMulti</span> <span style="color: #000000;">wifiMulti</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the Serial communication to send messages to the computer</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_1"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"</span><span style="color: rgb(0, 92, 95); font-size: 13px;">your_password_for_AP_1</span><span style="color: #005c5f;">"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// add Wi-Fi networks you want to connect to</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_2"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_2"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #000000;">addAP</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"ssid_from_AP_3"</span><span style="color: #434f54;">,</span> <span style="color: #005c5f;">"your_password_for_AP_3"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connecting ..."</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #00979c;">int</span> <span style="color: #000000;">i</span> <span style="color: #434f54;">=</span> <span style="color: #000000;">0</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #5e6d03;">while</span> <span style="color: #000000;">(</span><span style="color: #000000;">wifiMulti</span><span style="color: #434f54;">.</span><span style="color: #d35400;">run</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #434f54;">!=</span> <span style="color: #000000;">WL_CONNECTED</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #434f54;">// Wait for the Wi-Fi to connect: scan for Wi-Fi networks, and connect to the strongest of the networks above</span>
+ &nbsp;&nbsp;&nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">1000</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;&nbsp;&nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #00979c;">'.'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #000000;">}</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Connected to "</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">SSID</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Tell us what network we're connected to</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">localIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #000000;">}</span>
+</code></pre>
+   </div>
+   <div>
+        <br>
+   </div>
+   <h3>Access Point mode</h3>
+   <div>
+        To configure the ESP8266 as an access point, to allow other devices like smartphones or laptops to connect to it, you can use the softAP function:
+   </div>
+   <div>
+       <pre><code><span style="color: #5e6d03;">#include</span> <span style="color: #434f54;">&lt;</span><span style="color: #d35400;">ESP8266WiFi</span><span style="color: #434f54;">.</span><span style="color: #000000;">h</span><span style="color: #434f54;">&gt;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Include the Wi-Fi library</span>
+
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span> <span style="color: #434f54;">*</span><span style="color: #000000;">ssid</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"ESP8266 Access Point"</span><span style="color: #000000;">;</span> <span style="color: #434f54;">// The name of the Wi-Fi network that will be created</span>
+<span style="color: #00979c;">const</span> <span style="color: #00979c;">char</span> <span style="color: #434f54;">*</span><span style="color: #000000;">password</span> <span style="color: #434f54;">=</span> <span style="color: #005c5f;">"thereisnospoon"</span><span style="color: #000000;">;</span> &nbsp;&nbsp;<span style="color: #434f54;">// The password required to connect to it, leave blank for an open network</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">setup</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span>
+<span>  </span><span style="font-weight: bold; color: #d35400;">Serial</span><span style="color: #434f54;">.</span><span style="color: #d35400;">begin</span><span style="color: #000000;">(</span><span style="color: #000000;">115200</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<span style="color: #d35400;">delay</span><span style="color: #000000;">(</span><span style="color: #000000;">10</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #00979c;">'\n'</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+<span>  </span><span style="font-weight: bold; color: #d35400;">WiFi</span><span style="color: #434f54;">.</span><span style="color: #d35400;">softAP</span><span style="color: #000000;">(</span><span style="color: #000000;">ssid</span><span style="color: #434f54;">,</span> <span style="color: #000000;">password</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Start the access point</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"Access Point \""</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #000000;">ssid</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"\" started"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+
+  <span style="font-weight: bold; color: rgb(211, 84, 0);">Serial</span><span style="color: #434f54;">.</span><span style="color: #d35400;">print</span><span style="color: #000000;">(</span><span style="color: #005c5f;">"IP address:\t"</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span>
+ &nbsp;<b><span style="color: #d35400;">Serial</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">println</span><span style="color: #000000;">(</span><b><span style="color: #d35400;">WiFi</span></b><span style="color: #434f54;">.</span><span style="color: #d35400;">softAPIP</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span><span style="color: #000000;">)</span><span style="color: #000000;">;</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #434f54;">// Send the IP address of the ESP8266 to the computer</span>
+<span style="color: #000000;">}</span>
+
+<span style="color: #00979c;">void</span> <span style="color: #5e6d03;">loop</span><span style="color: #000000;">(</span><span style="color: #000000;">)</span> <span style="color: #000000;">{</span> <span style="color: #000000;">}</span>
+</code></pre>
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        To see if it works, open the Wi-Fi settings on your computer, look for a network called "ESP8266 Access Point", enter the password "thereisnospoon", and connect to it. Then open a terminal, and ping to 192.168.4.1 (this is the default IP address of our ESP AP). You'll see that the ESP responds to your pings.&nbsp;
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        However, if you try to go to an online website, you'll get a timeout or a DNS error. This is because the ESP itself is not connected to the internet. The sub-net that consists of the ESP and the computer is not connected to any other networks, so there's no way for a packet on this network to make it to the Internet.
+   </div>
+   <div>
+        <br>
+   </div>
+   <div>
+        If you connected a second station to the ESP access point on the other hand, you would be able to ping from one station to the other without problems, because they're on the same network.
+   </div>
+    
+<hr>
+            <div class="back"><a href="Chap06 - Uploading.html">← Previous chapter</a></div>
+            <div class="next"><a href="Chap08 - mDNS.html">Next chapter →</a></div>
+            <div class="backArr"><a href="Chap06 - Uploading.html"><i class="material-icons">arrow_back</i></a></div>
+            <div class="nextArr"><a href="Chap08 - mDNS.html"><i class="material-icons">arrow_forward</i></a></div>
+        </article>
+    </body>
+</html>

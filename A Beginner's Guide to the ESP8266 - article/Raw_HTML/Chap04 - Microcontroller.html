@@ -1,5 +1,5 @@
 
-   <h2> The ESP8266 as a microcontroller - Hardware</h2>
+   <h2>The ESP8266 as a microcontroller - Hardware</h2>
    <p>While the ESP8266 is often used as a ‘dumb’ Serial-to-WiFi bridge, it’s a very powerful microcontroller on its own. In this chapter, we’ll look at the non-Wi-Fi specific functions of the ESP8266.</p>
    <h3>Digital I/O</h3>
    <p>Just like a normal Arduino, the ESP8266 has digital input/output pins (I/O or GPIO, General Purpose Input/Output pins). As the name implies, they can be used as digital inputs to read a digital voltage, or as digital outputs to output either 0V (sink current) or 3.3V (source current).</p>
@@ -177,13 +177,13 @@
    <p>All Arduino Stream functions, like <code>read, write, print, println, ...</code> are supported as well.</p>
    <h4>I²C and SPI</h4>
    <p>You can just use the default Arduino library syntax, like you normally would.</p>
-   <h2>Sharing CPU time with the RF part</h2>
+   <h3>Sharing CPU time with the RF part</h3>
    <p>One thing to keep in mind while writing programs for the ESP8266 is that your sketch has to share resources (CPU time and memory) with the Wi-Fi- and TCP-stacks (the software that runs in the background and handles all Wi-Fi and IP connections). <br>
     If your code takes too long to execute, and don’t let the TCP stacks do their thing, it might crash, or you could lose data. It’s best to keep the execution time of you loop under a couple of hundreds of milliseconds.</p>
    <p>Every time the main loop is repeated, your sketch yields to the Wi-Fi and TCP to handle all Wi-Fi and TCP requests.</p>
    <p>If your loop takes longer than this, you will have to explicitly give CPU time to the Wi-Fi/TCP stacks, by using including <code>delay(0);</code> or <code>yield();</code>. If you don’t, network communication won’t work as expected, and if it’s longer than 3 seconds, the soft WDT (Watch Dog Timer) will reset the ESP. If the soft WDT is disabled, after a little over 8 seconds, the hardware WDT will reset the chip.</p>
    <p>From a microcontroller’s perspective however, 3 seconds is a very long time (240 million clockcycles), so unless you do some extremely heavy number crunching, or sending extremely long strings over Serial, you won’t be affected by this. Just keep in mind that you add the <code>yield();</code> inside your <code>for</code> or <code>while</code> loops that could take longer than, say 100ms.</p>
-   <h2>Sources</h2>
+   <h3>Sources</h3>
    <p>This is where I got most of my information to writ this article, there’s some more details on the GitHub pages, if you’re into some more advanced stuff, like EEPROM or deep sleep etc.</p>
    <ul>
        <li> <a href="https://github.com/esp8266/Arduino/issues/2942">https://github.com/esp8266/Arduino/issues/2942</a> </li>

@@ -3,7 +3,7 @@ body {
     margin: 0px;
     padding: 15px 0px 0px 0px;
     font-family: 'Roboto', sans-serif;
-    color: #333;
+    color: #111;
 }
 
 img {
@@ -134,7 +134,7 @@ div.backArr {
     position:fixed;
     left:3%;
     top:50vh;
-    margin-left:-12px;
+    margin-left:20px;
     margin-top:-12px;
     z-index:2;
 }
@@ -214,4 +214,7 @@ body {
     }
     nav {
         display: none;
+    }
+    div.backArr {
+        margin-left:-12px;
     }

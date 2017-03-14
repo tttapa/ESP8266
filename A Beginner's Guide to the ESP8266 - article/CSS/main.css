@@ -213,7 +213,21 @@ body {
         font-size: 12px;
     }
     nav {
-        display: none;
+        position: relative;
+        width: 100%;
+        height: 32px;
+        padding: 12px 2em;
+        left: 0;
+        -webkit-transition: height 500ms, padding 500ms;
+        -moz-transition: height 500ms, padding 500ms;
+        transition: height 500ms, padding 500ms;
+        overflow: hidden
+    }
+    nav:hover {
+        left: 0;
+        overflow: auto;
+        height: 100vh;
+        padding: 2em;
     }
     div.backArr {
         margin-left:-12px;

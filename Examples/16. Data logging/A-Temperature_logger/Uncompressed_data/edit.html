@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    <title>HTML Uploader</title>
+    <link href='https://fonts.googleapis.com/css?family=Roboto:300' rel='stylesheet' type='text/css'>
+    <link href='main.css' rel='stylesheet' type='text/css'>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="144x144"  href="/favicon-144x144.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.ico">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#00878f">
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport'>
+</head>
+<body>
+	<center>
+        <header>
+            <h1>HTML Uploader</h1>
+        </header>
+        <div>
+            <p style="text-align: left">Use this page to upload new files to the ESP8266.<br/>You can use compressed (deflated) files (files with a .gz extension) to save space and bandwidth.</p>
+            <form method="post" enctype="multipart/form-data" style="margin: 0px auto 8px auto" >
+                <input type="file" name="Choose file" accept=".gz,.html,.ico,.js,.css">
+                <input class="button" type="submit" value="Upload" name="submit">
+            </form>            
+        </div>
+	</center>
+</body>
+</html>

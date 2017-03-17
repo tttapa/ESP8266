@@ -1,0 +1,45 @@
+body {
+    font-family: 'Roboto', sans-serif;
+}
+center {
+    width: 420px;
+    max-width: 100%;
+    margin: 0px auto;
+    color: #444;
+}
+
+header {
+    background-color: #00878F;
+    color: white;
+    padding: 6px;
+    box-shadow: 1px 1px 5px #555555;
+    position: relative;
+}
+
+h1 {
+    margin: 0px;
+    font-size: 32;
+}
+
+center>div {
+    padding: 24px 10px 10px 10px;
+    box-shadow: 1px 1px 5px #555555;
+}
+
+.button {
+    text-decoration: none;
+    border: none;
+    color: white;
+    background-color: #00878F;
+    padding: 6px 24px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 1px 1px 6px #555;
+    outline: none;
+    margin: 12px auto 0px auto;
+    display: inline-block;
+}
+
+.button:hover {
+    box-shadow: 1px 1px 3px #444;
+}

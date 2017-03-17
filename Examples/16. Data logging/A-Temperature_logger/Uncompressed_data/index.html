@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ESP8266 Temperature Logger</title>
+    <link href='https://fonts.googleapis.com/css?family=Roboto:300' rel='stylesheet' type='text/css'>
+    <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon.ico">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#00878f">
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport'>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+
+<body>
+    <center>
+        <h1>ESP8266 Temperature Logger</h1>
+        <div id="chart_div"></div>
+        <div class="dateselect">
+            <div id="date"></div>
+            <button id="prev">&lt;</button>
+            <button id="next">&gt;</button><br>
+            <button id="zoomout">-</button>
+            <button id="zoomin">+</button><br>
+            <button id="reset" style="width: 4.4em;">Reset</button><br>
+            <button id="refresh" style="width: 4.4em;">Refresh</button>
+        </div>
+    </center>
+
+    <script src="temperatureGraph.js"></script>
+
+    <style>
+	body {
+	    font-family: 'Roboto', sans-serif;
+	    font-size: 22pt;
+	    margin: 0;
+	    margin-top: 6px;
+	}
+
+	h1 {
+	    font-size: 1.5em;
+	    font-weight: normal;
+	    margin: 0px;
+	}
+
+	button {
+	    font-size: 14pt;
+	    width: 2em;
+	}
+
+	center {
+	    padding: 1em;
+	    margin: auto;
+	    width: 90%;
+	    box-shadow: #777 2px 2px 5px;
+	    box-sizing: border-box;
+	}
+
+	@media only screen and (max-device-width: 700px) {
+	    center {
+		width: 100%;
+		height: 100vh;
+		overflow: auto;
+	    }
+	}
+    </style>
+</body>
+
+</html>

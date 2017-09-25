@@ -15,8 +15,9 @@
 <body>
     <center>
         <h1>ESP8266 Temperature Logger</h1>
-        <div id="chart_div"></div>
-        <div class="dateselect">
+		<div id="chart_div"></div>
+		<div id="loading">Loading ...</div>
+        <div id="dateselect" style="visibility: hidden;">
             <div id="date"></div>
             <button id="prev">&lt;</button>
             <button id="next">&gt;</button><br>
@@ -40,7 +41,7 @@
 	h1 {
 	    font-size: 1.5em;
 	    font-weight: normal;
-	    margin: 0px;
+	    margin: 0px 0px 12px 0px;
 	}
 
 	button {
@@ -54,6 +55,10 @@
 	    width: 90%;
 	    box-shadow: #777 2px 2px 5px;
 	    box-sizing: border-box;
+	}
+
+	#loading {
+		margin-bottom: 12px;
 	}
 
 	@media only screen and (max-device-width: 700px) {

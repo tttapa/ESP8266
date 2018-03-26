@@ -50,7 +50,7 @@ void setup() {
   });
 
   server.on("/upload", HTTP_POST,                       // if the client posts to the upload page
-    [](){ server.send(200); },                          // Send status 200 (OK) to tell the client we are ready to receive
+    [](){},
     handleFileUpload                                    // Receive and save the file
   );
 
@@ -82,8 +82,8 @@ bool handleFileRead(String path) { // send the right file to the client (if it e
   String contentType = getContentType(path);             // Get the MIME type
   String pathWithGz = path + ".gz";
   if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) { // If the file exists, either as a compressed archive, or normal
-    if (SPIFFS.exists(pathWithGz))                         // If there's a compressed version available
-      path += ".gz";                                         // Use the compressed verion
+    if (SPIFFS.exists(pathWithGz))                          // If there's a compressed version available
+      path = pathWithGz;                                      // Use the compressed verion
     File file = SPIFFS.open(path, "r");                    // Open the file
     size_t sent = server.streamFile(file, contentType);    // Send it to the client
     file.close();                                          // Close the file again
@@ -101,7 +101,6 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
     if(!filename.startsWith("/")) filename = "/"+filename;
     Serial.print("handleFileUpload Name: "); Serial.println(filename);
     fsUploadFile = SPIFFS.open(filename, "w");            // Open the file for writing in SPIFFS (create if it doesn't exist)
-    filename = String();
   } else if(upload.status == UPLOAD_FILE_WRITE){
     if(fsUploadFile)
       fsUploadFile.write(upload.buf, upload.currentSize); // Write the received bytes to the file
@@ -112,6 +111,7 @@ void handleFileUpload(){ // upload a new file to the SPIFFS
       server.sendHeader("Location","/success.html");      // Redirect the client to the success page
       server.send(303);
     } else {
+      Serial.println("File upload failed");
       server.send(500, "text/plain", "500: couldn't create file");
     }
   }

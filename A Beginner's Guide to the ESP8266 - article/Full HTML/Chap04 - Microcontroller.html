@@ -80,7 +80,7 @@
    <h4>SPI</h4>
    <p>The ESP8266 has one SPI connection available to the user, referred to as HSPI. It uses GPIO14 as CLK, 12 as MISO, 13 as MOSI and 15 as Slave Select (SS). It can be used in both Slave and Master mode (in software).</p>
    <h3>GPIO overview</h3>
-   <table style="box-sizing: border-box;border-spacing: 0px;border-collapse: collapse;margin-top: 0px;margin-bottom: 16px;display: block; overflow: auto; */color: rgb(51, 51, 51);font-family: -apple-system, BlinkMacSystemFont,">
+   <table style="box-sizing: border-box;border-spacing: 0px;border-collapse: collapse;margin-top: 0px;margin-bottom: 16px;display: block; overflow: auto; color: rgb(51, 51, 51);font-family: -apple-system, BlinkMacSystemFont,">
        <thead style="box-sizing: border-box;">
            <tr style="box-sizing: border-box; border-top: 1px solid rgb(204, 204, 204);">
                <th style="box-sizing: border-box; padding: 6px 13px; border: 1px solid rgb(221, 221, 221);">GPIO</th>
@@ -184,7 +184,7 @@
     If you use it to read the supply voltage, you can’t connect anything else to the analog pin.</p>
    <h3>Communication</h3>
    <h4>Serial communication</h4>
-   <p>To use UART0 (TX = GPIO1, RX = GPIO3), you can use the <code>Serial</code> object, just like on an Arduino:&nbsp;<code>Serial.begin(baud)</code>.</p>
+   <p>To use UART0 (TX = GPIO1, RX = GPIO3), you can use the <code>Serial</code> object, just like on an Arduino: <code>Serial.begin(baud)</code>.</p>
    <p></p>
    <p>To use the alternative pins (TX = GPIO15, RX = GPIO13), use <code>Serial.swap()</code> after <code>Serial.begin</code>.</p>
    <p>To use UART1 (TX = GPIO2), use the <code>Serial1</code> object.</p>

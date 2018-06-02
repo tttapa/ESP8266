@@ -16,7 +16,7 @@ OneWire oneWire(TEMP_SENSOR_PIN);        // Set up a OneWire instance to communi
 
 DallasTemperature tempSensors(&oneWire); // Create an instance of the temperature sensor class
 
-ESP8266WebServer server = ESP8266WebServer(80);       // create a web server on port 80
+ESP8266WebServer server(80);             // create a web server on port 80
 
 File fsUploadFile;                                    // a File variable to temporarily store the received file
 

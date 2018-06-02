@@ -68,13 +68,13 @@
    </div>
    <h4>Bare-bones AI Thinker boards</h4>
    <div>
-        If you want to add an ESP8266 to a small project, or if you want a cheaper* board, you might want to buy a board that doesn't have these features. In that case, you can buy one of the many ESP-## modules developed by AI Thinker. They contain just the ESP8266 and the necessary components to run it.&nbsp;
+        If you want to add an ESP8266 to a small project, or if you want a cheaper* board, you might want to buy a board that doesn't have these features. In that case, you can buy one of the many ESP-## modules developed by AI Thinker. They contain just the ESP8266 and the necessary components to run it. 
    </div>
    <div>
         To program the board, you'll need an external USB-to-Serial converter.
    </div>
    <div>
-        With some modules, you get an on-board antenna (PCB or ceramic) and an LED, some boards have just an antenna connector, or no LEDs at all. They also differ in physical size, and flash memory size. An important thing to notice, is that some boards do not break out&nbsp;all GPIO pins. For example, the ESP-01 only has 2 I/O pins available (apart from the TX and RX pins), while other modules like the ESP-07 or ESP-12 break out all available I/O pins.
+        With some modules, you get an on-board antenna (PCB or ceramic) and an LED, some boards have just an antenna connector, or no LEDs at all. They also differ in physical size, and flash memory size. An important thing to notice, is that some boards do not break out all GPIO pins. For example, the ESP-01 only has 2 I/O pins available (apart from the TX and RX pins), while other modules like the ESP-07 or ESP-12 break out all available I/O pins.
    </div>
    <div>
         <br>
@@ -202,7 +202,7 @@
    </div>
    <h4>Development boards with a USB interface</h4>
    <div>
-        For example: NodeMCU,&nbsp;SparkFun ESP8266 Thing - Dev Board, SparkFun Blynk Board, Adafruit Feather HUZZAH&nbsp;with ESP8266 Wi-Fi ...
+        For example: NodeMCU, SparkFun ESP8266 Thing - Dev Board, SparkFun Blynk Board, Adafruit Feather HUZZAH with ESP8266 Wi-Fi ...
    </div>
    <div>
         <br>
@@ -223,18 +223,18 @@
    <ol>
        <li>Connect the ground (GND) of the USB-to-Serial converter to the ground of the ESP8266.<br>
         </li>
-       <li>Connect the RX-pin of the&nbsp;USB-to-Serial converter to the TXD pin of the ESP8266. (On some boards, it's labelled TX instead of TXD, but it's the same pin.)</li>
-       <li>Connect the TX-pin of the&nbsp;USB-to-Serial converter to the RXD pin of the ESP8266.&nbsp;(On some boards, it's labelled RX instead of RXD, but it's the same pin.)</li>
+       <li>Connect the RX-pin of the USB-to-Serial converter to the TXD pin of the ESP8266. (On some boards, it's labelled TX instead of TXD, but it's the same pin.)</li>
+       <li>Connect the TX-pin of the USB-to-Serial converter to the RXD pin of the ESP8266. (On some boards, it's labelled RX instead of RXD, but it's the same pin.)</li>
        <li>If your ESP8266 board has a DTR pin, connect it to the DTR pin of the USB-to-Serial converter. This enables auto-reset when uploading a sketch, more on that later. <br>
         </li>
    </ol>
    <h4>Enabling the chip</h4>
    <div>
-        If you're using a bare-bone ESP-## board by AI Thinker, you have to add some resistors to turn on the ESP8266, and to select the right boot mode.&nbsp;
+        If you're using a bare-bone ESP-## board by AI Thinker, you have to add some resistors to turn on the ESP8266, and to select the right boot mode. 
    </div>
    <div>
        <ol>
-           <li>Enable the chip by connecting the CH_PD (Chip Power Down, sometimes labeled CH_EN or chip enable) pin to V<sub>CC&nbsp;</sub>through a 10KΩ resistor.</li>
+           <li>Enable the chip by connecting the CH_PD (Chip Power Down, sometimes labeled CH_EN or chip enable) pin to V<sub>CC </sub>through a 10KΩ resistor.</li>
            <li>Disable SD-card boot by connecting GPIO15 to ground through a 10KΩ resistor.</li>
            <li>Select normal boot mode by connecting GPIO0 to V<sub>CC </sub>through a 10KΩ resistor.</li>
            <li>Prevent random resets by connecting the RST (reset) pin to V<sub>CC </sub>through a 10KΩ resistor.</li>
@@ -271,7 +271,7 @@
     <a href="../Images/VReg.png" title="VReg.png"><img src="../Images/thumbs/VReg.png" alt="VReg.png"></a><a href="../Images/ESP8266-2.png" title="ESP8266-2.png"><img src="../Images/thumbs/ESP8266-2.png" alt="ESP8266-2.png"></a>
    <h3>Before you begin ...</h3>
    <div>
-        There's a few things you have to look out for when using an ESP8266: The most important thing is that it runs at 3.3V, so if you connect it to a 5V power supply, you'll kill it. Unlike some 3.3V Arduino or Teensy boards, <b>the ESP8266's I/O pins are not 5V tolerant</b>, so if you use a 5V USB-to-Serial converter, or 5V sensors etc. you'll blow it up.&nbsp;
+        There's a few things you have to look out for when using an ESP8266: The most important thing is that it runs at 3.3V, so if you connect it to a 5V power supply, you'll kill it. Unlike some 3.3V Arduino or Teensy boards, <b>the ESP8266's I/O pins are not 5V tolerant</b>, so if you use a 5V USB-to-Serial converter, or 5V sensors etc. you'll blow it up. 
    </div>
    <div>
         A second thing to keep in mind is that the ESP8266 can only source or sink <b>12mA per output pin</b>, compared to 20-40mA for most Arduinos.

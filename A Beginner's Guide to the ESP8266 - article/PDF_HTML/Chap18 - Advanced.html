@@ -14,7 +14,7 @@
    <h2>Advanced</h2>
    <h3>DNS Captive Portal</h3>
    <div>
-        When using the ESP8266 in access point mode, you probably want to redirect users to the right page. You can do this by creating a captive portal, using DNS. It's basically just a DNS server that will convert all host names to the ESP's own IP address.&nbsp;
+        When using the ESP8266 in access point mode, you probably want to redirect users to the right page. You can do this by creating a captive portal, using DNS. It's basically just a DNS server that will convert all host names to the ESP's own IP address. 
    </div>
    <div>
         This technique is also used by open Wi-Fi networks that redirect you to a login page before you can start browsing the internet.
@@ -31,10 +31,10 @@
    </div>
    <h3>I²S</h3>
    <div>
-        The ESP8266 has an I²S bus on the RXD pin. It can run at 80MHz, and has DMA (direct memory access), so it's really fast. Its main purpose is to <a href="https://www.youtube.com/watch?v=JsRsNDIBQsM">connect an I²S DAC</a> (Digital to Analog Converter) to have an audio output, but you can use it for other things as well.&nbsp;
+        The ESP8266 has an I²S bus on the RXD pin. It can run at 80MHz, and has DMA (direct memory access), so it's really fast. Its main purpose is to <a href="https://www.youtube.com/watch?v=JsRsNDIBQsM">connect an I²S DAC</a> (Digital to Analog Converter) to have an audio output, but you can use it for other things as well. 
    </div>
    <div>
-        For example, CNLohr managed to <a href="https://www.youtube.com/watch?v=bcez5pcp55w">transmit analog television</a>, by connecting an antenna wire to the I²S pin. You can also use it to <a href="https://www.youtube.com/watch?v=6zqGwxqJQnw">control&nbsp;WS2812Bs LEDs</a>. You can even use it to <a href="https://www.youtube.com/watch?v=XKnyAYKP434">communicate over Ethernet</a> (not really useful, and definitely not recommended, but it works).
+        For example, CNLohr managed to <a href="https://www.youtube.com/watch?v=bcez5pcp55w">transmit analog television</a>, by connecting an antenna wire to the I²S pin. You can also use it to <a href="https://www.youtube.com/watch?v=6zqGwxqJQnw">control WS2812Bs LEDs</a>. You can even use it to <a href="https://www.youtube.com/watch?v=XKnyAYKP434">communicate over Ethernet</a> (not really useful, and definitely not recommended, but it works).
    </div>
    <div>
         Another great use for the I²S bus is <a href="https://www.youtube.com/watch?v=tURU9UKbYXw&amp;t=0s">outputting data to shift registers</a>. This gives you extra outputs that are reasonably fast, for things like LEDs or stepper motors.

@@ -72,7 +72,7 @@
    <div>
        <ol>
            <li>The ESP8266 connects to a wireless access point (WAP or simply AP). The AP can be built-in to your modem or router, for example. <br>
-            In this configuration, the ESP acts like a wireless <b>station.</b>&nbsp;</li>
+            In this configuration, the ESP acts like a wireless <b>station.</b> </li>
            <li>The ESP8266 acts as an <b>access point </b>and wireless stations can connect to it. These stations could be your laptop, a smartphone, or even another ESP in station mode.</li>
        </ol>
        <div>
@@ -102,10 +102,10 @@
    </div>
    <h3>The Internet or Network layer</h3>
    <div>
-        Although the devices are now physically connected (either through actual wires (Ethernet) or through radio waves (Wi-Fi)), they can't actually talk to each other yet, because they have no way of knowing where to send the message to.&nbsp;
+        Although the devices are now physically connected (either through actual wires (Ethernet) or through radio waves (Wi-Fi)), they can't actually talk to each other yet, because they have no way of knowing where to send the message to. 
    </div>
    <div>
-        That's where the <b>Internet Protocol</b> (IP) comes in. Every device on the network has a personal IP address. The DHCP server (Dynamic Host Configuration Protocol Server) makes sure that these addresses are unique.&nbsp;
+        That's where the <b>Internet Protocol</b> (IP) comes in. Every device on the network has a personal IP address. The DHCP server (Dynamic Host Configuration Protocol Server) makes sure that these addresses are unique. 
    </div>
    <div>
         This means that you can now send a message to a specific address.
@@ -120,7 +120,7 @@
         <br>
    </div>
    <div>
-        The IP address consists of 4 numbers, for example <i>192.168.1.5</i>&nbsp;is a valid IPv4 address. It actually consists of two parts: the first part is <i>192.168.1</i>, this is the address of the local network. The last digit, 5 in this case, is specific to the device.&nbsp;
+        The IP address consists of 4 numbers, for example <i>192.168.1.5</i> is a valid IPv4 address. It actually consists of two parts: the first part is <i>192.168.1</i>, this is the address of the local network. The last digit, 5 in this case, is specific to the device. 
    </div>
    <div>
         <br>
@@ -136,7 +136,7 @@
         <i>This subdivision of the IP address is determined by the sub-net mask, often written as 255.255.255.0. You can see that it consists of four numbers, just like the IP address. If a part of the sub-net mask is 255, it means that the corresponding part of the IP address is part of the network address, if it's 0, the corresponding IP part is part of the address of the specific address. A different notation to "IP: 192.168.1.5, sub-net mask: 255.255.255.0" would be "192.168.1.5/24", because the binary representation of the sub-net mask is 11111111.11111111.11111111.00000000, and it has 24 ones.</i>
    </div>
    <div>
-        <i>If you want to know more about sub-nets, I'd recommend you to read the <a href="https://en.wikipedia.org/wiki/IPv4_subnetting_reference">Wikipedia article</a>.&nbsp;</i>
+        <i>If you want to know more about sub-nets, I'd recommend you to read the <a href="https://en.wikipedia.org/wiki/IPv4_subnetting_reference">Wikipedia article</a>. </i>
    </div>
    <div>
         <i>(A quick tip to help you remember: it's called the sub-net mask, because if you perform a bitwise AND operation on the IP address and the sub-net mask (i.e. use the sub-net mask as a mask for the IP address), you get the address of the sub-net.)</i>
@@ -146,7 +146,7 @@
    </div>
    <h4><i>MAC addresses and ARP <span style="font-weight: normal;">(optional)</span></i></h4>
    <div>
-        <i>It is actually impossible to send packets directly to another machine using only the IP address. To send a packet to a specific device on the LAN (Wi-Fi or Ethernet), you have to know its MAC-address. The MAC address is a unique number that is unique for every network device, and it never changes, it's hardwired in the network chip. This means that every ESP8266, every network card, every smartphone ... ever made, has a different MAC address.&nbsp;</i>
+        <i>It is actually impossible to send packets directly to another machine using only the IP address. To send a packet to a specific device on the LAN (Wi-Fi or Ethernet), you have to know its MAC-address. The MAC address is a unique number that is unique for every network device, and it never changes, it's hardwired in the network chip. This means that every ESP8266, every network card, every smartphone ... ever made, has a different MAC address. </i>
    </div>
    <div>
         <i>So before the ESP can send a packet to your smartphone for example, it has to know its MAC address. It doesn't know this yet, the ESP only knows the IP address of the smartphone, say 192.168.1.6. To do this, the ESP sends a broadcast message (i.e. a message addressed to all devices on the LAN) saying "I'm looking for the MAC address of the device with the IP address 192.168.1.6". The ESP also includes its own IP and MAC address with the message. When the smartphone receives this broadcast message, it recognizes its own IP address, and responds to the ESP by sending its own MAC address. Now the ESP and the phone both know each other's IP and MAC addresses, and they can communicate using IP addresses. This method is called the Addres Resolution Protocol, or ARP.</i>
@@ -210,17 +210,17 @@
        <div>
             There's lots of different protocols out there, but we'll mostly focus on the protocols for web servers and browsers.
        </div>
-       <h4>HyperText Transfer Protocol&nbsp;<br>
+       <h4>HyperText Transfer Protocol <br>
         </h4>
    </div>
    <div>
         The HyperText Transfer Protocol, or HTTP, is the protocol (cfr. language) that is used by both web servers and web clients in order to communicate. It uses text to perform send requests and responses from the client to the server and back again.
    </div>
    <div>
-        For example, when you type <a href="http://www.google.com">http://www.google.com</a>&nbsp;into the address bar of a web browser (client), it will send an HTTP GET request to the Google web server. The server understands this HTTP request, and will send the Google webpage as a response. Or when you upload an image to Instagram, your browser sends an HTTP POST request with your selfie attached to the Instagram server. The server understands the request, saves the image and adds it into the database, sends the URL of the new image back to your browser, and the browser will add the image on the webpage.
+        For example, when you type <a href="http://www.google.com">http://www.google.com</a> into the address bar of a web browser (client), it will send an HTTP GET request to the Google web server. The server understands this HTTP request, and will send the Google webpage as a response. Or when you upload an image to Instagram, your browser sends an HTTP POST request with your selfie attached to the Instagram server. The server understands the request, saves the image and adds it into the database, sends the URL of the new image back to your browser, and the browser will add the image on the webpage.
    </div>
    <div>
-        As you can see, neither the client nor the server has to worry about the integrity of the messages they send, and they know that the recipient understands their language, and that it will know what to do with a certain HTTP request.&nbsp;
+        As you can see, neither the client nor the server has to worry about the integrity of the messages they send, and they know that the recipient understands their language, and that it will know what to do with a certain HTTP request. 
    </div>
    <div>
         Most modern sites use a <span style="text-decoration: underline;">s</span>ecure version of HTTP, called HTTPS. This secure connection encrypts the data, for security reasons. (You don't want anyone reading the packets from your mail server, or the packets you sent to your bank, for instance.)

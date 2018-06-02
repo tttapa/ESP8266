@@ -91,7 +91,7 @@
             <br>
        </div>
        <div>
-            As you can see, the 6.6V peak is now very narrow, just like we wanted. It's impossible to discharge the capacitor instantly, that would require a capacitor and a diode with 0Ω of series resistance, and an infinite current, which is impossible, obviously. There's also a smaller but relatively wide peak of approximately 3.9V. This is because a diode only conducts when the voltage across it is higher than ~600mV. This means that the last 0.6V that's left in the capacitor (from 3.9 to 3.3V) will still be discharged through R2 only.&nbsp;
+            As you can see, the 6.6V peak is now very narrow, just like we wanted. It's impossible to discharge the capacitor instantly, that would require a capacitor and a diode with 0Ω of series resistance, and an infinite current, which is impossible, obviously. There's also a smaller but relatively wide peak of approximately 3.9V. This is because a diode only conducts when the voltage across it is higher than ~600mV. This means that the last 0.6V that's left in the capacitor (from 3.9 to 3.3V) will still be discharged through R2 only. 
        </div>
        <div>
             Nevertheless, the voltage peak is much lower and narrower than without the diode, and it's safe to connect to the ESP8266.
@@ -153,7 +153,7 @@
        <br>
    </div>
    <div>
-        If you don't have a USB-to-Serial converter with DTR and RTS lines, you could also just use the reset and program buttons we added in the hardware chapter. To get the ESP in program mode, GPIO0 must be low while booting:&nbsp;
+        If you don't have a USB-to-Serial converter with DTR and RTS lines, you could also just use the reset and program buttons we added in the hardware chapter. To get the ESP in program mode, GPIO0 must be low while booting: 
    </div>
    <div>
        <ol>
@@ -188,7 +188,7 @@
    </div>
    <h4>Debug port</h4>
    <div>
-        There's a load of things going on when the ESP is running: Things like Wi-Fi connections, TCP connections, DNS lookups ... you name it. All these small tasks produce a whole lot of debug output to help you troubleshoot. However, in a normal situation, where your program is behaving as expected, you don't need all those debug messages to flood the Serial Monitor, so you can just turn them off by selecting 'Disabled'.&nbsp;
+        There's a load of things going on when the ESP is running: Things like Wi-Fi connections, TCP connections, DNS lookups ... you name it. All these small tasks produce a whole lot of debug output to help you troubleshoot. However, in a normal situation, where your program is behaving as expected, you don't need all those debug messages to flood the Serial Monitor, so you can just turn them off by selecting 'Disabled'. 
    </div>
    <div>
         If you do wish to receive debug messages, you can select the port to send them to. (Serial on pins 1 and 3, or Serial1 on pin 2)
@@ -207,7 +207,7 @@
    </div>
    <h4>CPU Frequency</h4>
    <div>
-        If you need some extra CPU performance, you can double the clock speed from 80MHz to 160MHz. It's actually an overclock, but I've never had any issues or instability.&nbsp;
+        If you need some extra CPU performance, you can double the clock speed from 80MHz to 160MHz. It's actually an overclock, but I've never had any issues or instability. 
    </div>
    <h4>Upload Speed</h4>
    <div>

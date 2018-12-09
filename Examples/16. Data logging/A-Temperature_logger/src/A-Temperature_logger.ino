@@ -7,10 +7,11 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <FS.h>
+#include "pass.h"
 
 #define ONE_HOUR 3600000UL
 
-#define TEMP_SENSOR_PIN 5
+#define TEMP_SENSOR_PIN 2
 
 OneWire oneWire(TEMP_SENSOR_PIN);        // Set up a OneWire instance to communicate with OneWire devices
 
@@ -22,7 +23,7 @@ File fsUploadFile;                                    // a File variable to temp
 
 ESP8266WiFiMulti wifiMulti;    // Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'
 
-const char *OTAName = "ESP8266";         // A name and a password for the OTA service
+const char *OTAName = "DeviceLan";         // A name and a password for the OTA service
 const char *OTAPassword = "esp8266";
 
 const char* mdnsName = "esp8266";        // Domain name for the mDNS responder
@@ -48,8 +49,8 @@ void setup() {
 
   if (tempSensors.getDeviceCount() == 0) {
     Serial.printf("No DS18x20 temperature sensor found on pin %d. Rebooting.\r\n", TEMP_SENSOR_PIN);
-    Serial.flush();
-    ESP.reset();
+    //Serial.flush();
+  //  ESP.reset();
   }
 
   startWiFi();                 // Start a Wi-Fi access point, and try to connect to some given access points. Then wait for either an AP or STA connection
@@ -78,7 +79,7 @@ const unsigned long intervalNTP = ONE_HOUR; // Update the time every hour
 unsigned long prevNTP = 0;
 unsigned long lastNTPResponse = millis();
 
-const unsigned long intervalTemp = 60000;   // Do a temperature measurement every minute
+const unsigned long intervalTemp = 60000*5;   // Do a temperature measurement every 5 minute
 unsigned long prevTemp = 0;
 bool tmpRequested = false;
 const unsigned long DS_delay = 750;         // Reading the temperature from the DS18x20 can take up to 750ms
@@ -139,9 +140,9 @@ void loop() {
 /*__________________________________________________________SETUP_FUNCTIONS__________________________________________________________*/
 
 void startWiFi() { // Try to connect to some given access points. Then wait for a connection
-  wifiMulti.addAP("ssid_from_AP_1", "your_password_for_AP_1");   // add Wi-Fi networks you want to connect to
-  wifiMulti.addAP("ssid_from_AP_2", "your_password_for_AP_2");
-  wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
+  wifiMulti.addAP(ssid, password);   // add Wi-Fi networks you want to connect to
+  //wifiMulti.addAP("ssid_from_AP_2", "your_password_for_AP_2");
+  //wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
 
   Serial.println("Connecting");
   while (wifiMulti.run() != WL_CONNECTED) {  // Wait for the Wi-Fi to connect
@@ -164,8 +165,9 @@ void startUDP() {
 }
 
 void startOTA() { // Start the OTA service
-  ArduinoOTA.setHostname(OTAName);
-  ArduinoOTA.setPassword(OTAPassword);
+
+  //ArduinoOTA.setHostname(OTAName);
+  //ArduinoOTA.setPassword(OTAPassword);
 
   ArduinoOTA.onStart([]() {
     Serial.println("Start");
@@ -213,6 +215,39 @@ void startServer() { // Start a HTTP server with a file read handler and an uplo
   server.on("/edit.html",  HTTP_POST, []() {  // If a POST request is sent to the /edit.html address,
     server.send(200, "text/plain", "");
   }, handleFileUpload);                       // go to 'handleFileUpload'
+
+
+
+
+  server.on("/getTemperatures", [](){
+
+  //Read File data
+  String filename  = "/temp.csv";
+  File f = SPIFFS.open(filename, "r");
+
+  if (!f) {
+    Serial.println("file open failed");
+  }
+  else
+  {
+      String r = "";
+      Serial.println("Reading Data from File:");
+      //Data from file
+
+      String data;
+
+       while (f.available()){
+         data += char(f.read());
+       }
+
+      Serial.println("File Closed");
+
+      server.send(200, "text/html", "Temperatury na kaloryferze \n" + data + " size:"  + f.size());
+
+      f.close();  //Close file
+  }
+});
+
 
   server.onNotFound(handleNotFound);          // if someone requests any other file or page, go to function 'handleNotFound'
   // and check if the file exists

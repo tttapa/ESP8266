@@ -93,7 +93,6 @@ void setup(void){
   pinMode(ledRed1, OUTPUT); // ustawiamy pin jako wyjście
   pinMode(ledRed2, OUTPUT); // ustawiamy pin jako wyjście
 
-
   digitalWrite(led, 0);
 
   //setup WifireplyPacket
@@ -104,12 +103,19 @@ void setup(void){
 
   setupFile();
 
-  tickerSetup();
-
+  setupWebServer();
+  
+  //Udp
   setupUdp();
 
-  setupWebServer();
+  WiFi.hostByName(ntpServerName, timeServerIP); // Get the IP address of the NTP server
+  Serial.print("Time server IP:\t");
+  Serial.println(timeServerIP);
 
+  sendNTPpacket(timeServerIP);
+  
+  tickerSetup();
+  
   Serial.println("End setup");
 }
 
@@ -121,10 +127,9 @@ void setupUdp(){
   Serial.println();
 }
 void tickerSetup(){
-  //Initialize Ticker every 0.5s
-    //writeTempTicker.attach(60, writeTempToFile); //Use <strong>attach_ms</strong> if you need time in ms
+    writeTempTicker.attach(60*5, logTemp1); //Use <strong>attach_ms</strong> if you need time in ms
     //liveTicker.attach(10, giveLive);
-    //udpTicker(30, udpTicker);
+    udpTicker(3600, udpTicker); // 1/hour
 }
 
 
@@ -133,36 +138,21 @@ void udpTicker(){
   Serial.println("\r\nSending NTP request ...");
   sendNTPpacket(timeServerIP);               // Send an NTP request
 
-
- uint32_t time = getTime();                   // Check if an NTP response has arrived and get the (UNIX) time
- if (time) {                                  // If a new timestamp has been received
+  uint32_t time = getTime();                   // Check if an NTP response has arrived and get the (UNIX) time
+  if (time) {                                  // If a new timestamp has been received
    timeUNIX = time;
    Serial.print("NTP response:\t");
    Serial.println(timeUNIX);
  }
-
 }
 
-
-
-void giveLive(){
-  digitalWrite(ledRed2, HIGH);   // włączmy diodę, podajemy stan wysoki
-  delay(1000);                  // czekamy sekundę
-  digitalWrite(ledRed2, LOW);    // wyłączamy diodę, podajemy stan niski
-}
-
-void writeTempToFile(){
-
-  digitalWrite(ledRed1, HIGH);   // włączmy diodę, podajemy stan wysoki
-  digitalWrite(ledRed2, HIGH);   // włączmy diodę, podajemy stan wysoki
-
+void logTemp1(){
  //read temp
-
  sensors.requestTemperatures();
  Serial.println("");
  delay(1000);
- Serial.print("Sensor 1: ");
- //int sensorValue = sensors.getTempCByIndex(0);
+  
+ Serial.print("Temp 1 requested: ");
  float sensorValue1 = sensors.getTempCByIndex(0);
 
  String temp = String((sensorValue1));
@@ -172,13 +162,12 @@ void writeTempToFile(){
   //write to filename
   File f = SPIFFS.open(filename, "a");
 
- if (!f) {
+  if (!f) {
       Serial.println("file open to write failed");
     }
     else
     {
-        //Write data to file
-        f.print(data + "{ t: " +  temp + " u: C} \n" );
+        f.print(data + "," + temp );
     }
 
  f.close();  //Close file

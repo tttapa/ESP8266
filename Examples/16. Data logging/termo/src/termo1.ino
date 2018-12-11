@@ -1,6 +1,7 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
@@ -23,10 +24,15 @@ const char* password = "***";
 #include "pass.h"
 
 //local wifi
+ESP8266WiFiMulti wifiMulti; 
 
+
+//dns init
 MDNSResponder mdns;
-ESP8266WebServer server(80);
+const char* mdnsName = "esp8266A";        // Domain name for the mDNS responder
 
+//web server init
+ESP8266WebServer server(80);
 
 //udp
 WiFiUDP UDP;                     // Create an instance of the WiFiUDP class to send and receive
@@ -39,11 +45,12 @@ const int NTP_PACKET_SIZE = 48;  // NTP time stamp is in the first 48 bytes of t
 byte NTPBuffer[NTP_PACKET_SIZE]; // buffer to hold incoming and outgoing packets
 uint32_t timeUNIX = 0;
 
-//
+//ports
 const int led = 13;
 const int ledRed1 = 14;
-
 #define ONE_WIRE_BUS 2
+
+//files
 const char* tempLog1 = "/temp1.log";
 
 //term
@@ -69,13 +76,15 @@ void setup(void){
 
   digitalWrite(led, 0);
 
+  setupWifi();  
   //setup WifireplyPacket
-  WiFi.begin(ssid, password);
+  //WiFi.begin(ssid, password);
 
-  //OTA init
   setupOta();
 
   setupFile();
+  
+  setupMDNS(); 
 
   setupWebServer();
   
@@ -102,6 +111,25 @@ void tickerSetup(){
 }
 
 
+//------------------------------------------------- WIFI
+
+void setupWiFi() { // Try to connect to some given access points. Then wait for a connection
+  wifiMulti.addAP(ssid, password);   // add Wi-Fi networks you want to connect to
+  //wifiMulti.addAP("ssid_from_AP_2", "your_password_for_AP_2");
+  //wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
+
+  Serial.println("Connecting");
+  while (wifiMulti.run() != WL_CONNECTED) {  // Wait for the Wi-Fi to connect
+    delay(250);
+    Serial.print('.');
+  }
+  Serial.println("\r\n");
+  Serial.print("Connected to ");
+  Serial.println(WiFi.SSID());             // Tell us what network we're connected to
+  Serial.print("IP address:\t");
+  Serial.print(WiFi.localIP());            // Send the IP address of the ESP8266 to the computer
+  Serial.println("\r\n");
+}
 
 //------------------------------------------------- WEB METHODS - SETUP&HANDLE 
 
@@ -182,7 +210,16 @@ void handleNotFound(){
   server.send(404, "text/plain", message);
   digitalWrite(led, 0);
 }
-             
+
+//----------------------------- MDNS
+
+void setupMDNS(){
+  MDNS.begin(mdnsName);                        
+  Serial.print("mDNS responder started: http://");
+  Serial.print(mdnsName);
+  Serial.println(".local");
+}
+
 //----------------------------- FILES 
              
 void setupFile(){

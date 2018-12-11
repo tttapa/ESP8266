@@ -46,7 +46,7 @@ const int ledRed2 = 14;
 
 
 #define ONE_WIRE_BUS 2
-const char* tempLog1 = "/temps_pokoj.txt";
+const char* tempLog1 = "/temp1.log";
 
 //term
 OneWire oneWire(ONE_WIRE_BUS);
@@ -56,28 +56,7 @@ DallasTemperature sensor1(&oneWire);
 Ticker writeTempTicker;
 Ticker liveTicker;
 
-void handleRoot() {
-  digitalWrite(led, 1);
-  server.send(200, "text/plain", "hello from esp8266 marysia and tosia and iza 76!");
-  digitalWrite(led, 0);
-}
 
-void handleNotFound(){
-  digitalWrite(led, 1);
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET)?"GET":"POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-  for (uint8_t i=0; i<server.args(); i++){
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
-  }
-  server.send(404, "text/plain", message);
-  digitalWrite(led, 0);
-}
 
 void setup(void){
   //delay(3000); to debug purpose
@@ -110,6 +89,7 @@ void setup(void){
   WiFi.hostByName(ntpServerName, timeServerIP); // Get the IP address of the NTP server
   Serial.print("Time server IP: " + timeServerIP);
   
+  //First init Udp
   sendNTPpacket(timeServerIP);
   
   //tick one for get current time
@@ -119,13 +99,7 @@ void setup(void){
   Serial.println("End setup");
 }
 
-void setupUdp(){
-  Serial.println("Starting UDP");
-  UDP.begin(123);                          // Start listening for UDP messages on port 123
-  Serial.print("Local port:\t");
-  Serial.println(UDP.localPort());
-  Serial.println();
-}
+//---------------------------------------- TICK :)
 void tickerSetup(){
     writeTempTicker.attach(60*5, writeTempLog(sensor1, tempLog1)); //Use <strong>attach_ms</strong> if you need time in ms
     //liveTicker.attach(10, giveLive);
@@ -133,45 +107,7 @@ void tickerSetup(){
 }
 
 
-
-void udpTicker(){
-  Serial.println("\r\nSending NTP request ...");
-  sendNTPpacket(timeServerIP);               // Send an NTP request
-
-  uint32_t time = getTime();                   // Check if an NTP response has arrived and get the (UNIX) time
-  if (time) {                                  // If a new timestamp has been received
-   timeUNIX = time;
-   Serial.print("NTP response:\t");
-   Serial.println(timeUNIX);
- }
-}
-
-void writeTempLog(DallasTemperature sensor, const char* fileName){
- //read temp
- sensor.requestTemperatures();
- Serial.println("");
- delay(700); //wait 700 msec
-  
- Serial.print("Temp requested: ");
- float sensorValue1 = sensor.getTempCByIndex(0);
-
- String temp = String((sensorValue1));
- Serial.println("Current temperature is " + temp + " Celsius's");
- String data = "";
-
-  //write to file
-  File f = SPIFFS.open(fileName, "a");
-
-  if (!f) {
-      Serial.println("file open to write failed");
-    }
-    else
-    {
-        f.print(data + "," + temp );
-    }
-
- f.close();  //Close file
-}
+//------------------------------------------------- WEB METHODS - SETUP&HANDLE 
 
 void setupWebServer(){
   Serial.println("Begin setup webServer");
@@ -191,13 +127,7 @@ void setupWebServer(){
   server.on("/", handleRoot);
 
   server.on("/udpTicker", [](){
-    udpTicker();
-    String date = "none";
-    server.send(200, "text/html", "Current d&t is:  " + date);
-  });
-
-  server.on("/inline", [](){
-    server.send(200, "text/plain", "this works as well");
+    server.send(200, "text/html", "Current time stamp is:  " + udpTicker());
   });
 
   server.on("/ledRed1_On", [](){
@@ -214,40 +144,17 @@ void setupWebServer(){
   });
 
    server.on("/getLog1", [](){
-    //Read File data
-    File f = SPIFFS.open(tempLog1, "r");
-
-    if (!f) {
-      Serial.println("file open failed");
-    }
-    else
-    {
-        String r = "";
-        Serial.println("Reading Data from File:");
-        //Data from file
-
-        String data;
-
-         while (f.available()){
-           data += char(f.read());
-         }
-
-        Serial.println("File Closed");
-
-        server.send(200, "text/html", "Temperatury na kaloryferze \n" + data + " size:"  + f.size());
-
-        f.close();  //Close file
+        server.send(200, "text/html",  readTempLog(tempLog1));
   });
 
-  server.on("/getLog1", [](){
+  server.on("/Sensor1", [](){
      sensor1.requestTemperatures();
-     Serial.println("");
      delay(500);
-     Serial.print("Sensor 1: ");
      float sensorValue = sensor1.getTempCByIndex(0);
      String temp = String(sensorValue);
-     Serial.println("Current temperature is " + temp + " Celsius's");
-     server.send(200, "text/html", "Temperatura na kaloryferze " +  temp + " C") ;
+     String message = "Current temperature from sensor 1 is: " + temp + "C";
+     Serial.println(message);
+     server.send(200, "text/html", message);
   });
 
   server.onNotFound(handleNotFound);
@@ -257,44 +164,101 @@ void setupWebServer(){
   Serial.println("HTTP server started");
 }
 
+void handleRoot() {
+  digitalWrite(led, 1);
+  server.send(200, "text/plain", "hello from esp8266 marysia and tosia and iza 76!");
+  digitalWrite(led, 0);
+}
+
+void handleNotFound(){
+  digitalWrite(led, 1);
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET)?"GET":"POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i=0; i<server.args(); i++){
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
+  digitalWrite(led, 0);
+}
+             
+//----------------------------- FILE
+             
 void setupFile(){
    Serial.println("Begin setup File");
-  //Initialize File System
-  if(SPIFFS.begin())
+  
+  SPIFFS.begin();                             // Start the SPI Flash File System (SPIFFS)
+  Serial.println("SPIFFS started. Contents:");
   {
-    Serial.println("SPIFFS Initialize....ok");
-  }
-  else
-  {
-    Serial.println("SPIFFS Initialization...failed");
-  }
-
-  //Format File System
-  if(SPIFFS.format())
-  {
-    Serial.println("File System Formated");
-  }
-  else
-  {
-    Serial.println("File System Formatting Error");
-  }
-
-  File f = SPIFFS.open(filename, "w");
-
-  if (!f) {
-    Serial.println("file open failed");
-  }
-  else
-  {
-      //Write data to file
-      Serial.println("Begin Line");
-      f.print("{temp: 0}");
-      f.close();  //Close file
+    Dir dir = SPIFFS.openDir("/");
+    while (dir.next()) {                      // List the file system contents
+      String fileName = dir.fileName();
+      size_t fileSize = dir.fileSize();
+      Serial.printf("\tFS File: %s, size: %s\r\n", fileName.c_str(), formatBytes(fileSize).c_str());
+    }
+    Serial.printf("\n");
   }
   
   Serial.println("End setup File");
 }
 
+             
+void writeTempLog(DallasTemperature sensor, const char* fileName){
+ //read temp
+ sensor.requestTemperatures();
+ Serial.println("");
+ delay(700); //wait 700 msec
+  
+ Serial.print("Temp requested: ");
+ float sensorValue1 = sensor.getTempCByIndex(0);
+
+ String temp = String((sensorValue1));
+ Serial.println("Current temperature is " + temp + " Celsius's");
+ uint32_t timeStamp  = getTime()/1000;   
+
+  //write to file
+  File tempLog = SPIFFS.open(fileName, "a");
+
+  if (!f) {
+      Serial.println("file open to write failed");
+   }
+   else{
+      tempLog.print(timeStamp);
+      tempLog.print(',');
+      tempLog.println(temp);
+    }
+
+  tempLog.close();  //Close file
+}
+     
+//Read File data
+String readTempLog(const char* fileName){
+    String data;
+    File f = SPIFFS.open(fileName, "r");
+
+    if (!f) {
+      Serial.println("file open failed");
+    }
+    else{
+        Serial.println("Reading Data from File:");
+        //Data from file
+
+         while (f.available()){
+           data += char(f.read());
+         }
+
+        Serial.println("File Closed");
+     }
+     f.close();  //Close file      
+     return data;
+ }
+  
+//---------------------------------- OTA
  void setupOta(){
     Serial.println("Begin setup OTA");
 
@@ -320,24 +284,31 @@ void setupFile(){
    Serial.println("End setup OTA");
 }
 
-unsigned long previousTime = millis();
-
-const unsigned long interval = 1000;
-
-void loop() {
-  server.handleClient();
-  ArduinoOTA.handle();
-  /*
-  unsigned long diff = millis() - previousTime;
-  if(diff > interval) {
-    digitalWrite(led, !digitalRead(led));  // Change the state of the LED
-    previousTime += diff;
-  }
-  */
+//----------------------------------------- UDP TIME
+void setupUdp(){
+  Serial.println("Starting UDP");
+  UDP.begin(123);                          // Start listening for UDP messages on port 123
+  Serial.print("Local port:\t");
+  Serial.println(UDP.localPort());
+  Serial.println();
 }
 
 
-//udp methods
+uint32_t udpTicker(){
+  Serial.println("Sending NTP request ...\n");
+  sendNTPpacket(timeServerIP);               // Send an NTP request
+
+  uint32_t time = getTime();                   // Check if an NTP response has arrived and get the (UNIX) time
+  if (time) {                                  // If a new timestamp has been received
+   Serial.print("NTP response: " + time);
+  }
+  else{
+    Serial.print("Error NTP response");
+  }
+  
+  return time;
+}
+
 uint32_t getTime() {
   if (UDP.parsePacket() == 0) { // If there's no response (yet)
     return 0;
@@ -363,14 +334,8 @@ void sendNTPpacket(IPAddress& address) {
   UDP.endPacket();
 }
 
-inline int getSeconds(uint32_t UNIXTime) {
-  return UNIXTime % 60;
-}
-
-inline int getMinutes(uint32_t UNIXTime) {
-  return UNIXTime / 60 % 60;
-}
-
-inline int getHours(uint32_t UNIXTime) {
-  return UNIXTime / 3600 % 24;
+ //------------------------------------ MAIN LOOP 
+void loop() {
+  server.handleClient();
+  ArduinoOTA.handle();
 }

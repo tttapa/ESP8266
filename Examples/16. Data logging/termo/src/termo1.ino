@@ -41,9 +41,7 @@ uint32_t timeUNIX = 0;
 
 //
 const int led = 13;
-const int ledRed1 = 4;
-const int ledRed2 = 14;
-
+const int ledRed1 = 14;
 
 #define ONE_WIRE_BUS 2
 const char* tempLog1 = "/temp1.log";
@@ -53,10 +51,9 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensor1(&oneWire);
 
-Ticker writeTempTicker;
-Ticker liveTicker;
-
-
+//Tickers
+Ticker tempTicker;
+Ticker udpTicker;
 
 void setup(void){
   //delay(3000); to debug purpose
@@ -69,7 +66,6 @@ void setup(void){
   //set pins
   pinMode(led, OUTPUT);
   pinMode(ledRed1, OUTPUT);
-  pinMode(ledRed2, OUTPUT);
 
   digitalWrite(led, 0);
 
@@ -92,19 +88,19 @@ void setup(void){
   //First init Udp
   sendNTPpacket(timeServerIP);
   
-  //tick one for get current time
-  udpTicker();
+  //init udp request
+  udpRequest();
   
   delay(500);
   Serial.println("End setup");
 }
 
-//---------------------------------------- TICK :)
+//---------------------------------------- TICKS :)
 void tickerSetup(){
-    writeTempTicker.attach(60*5, writeTempLog(sensor1, tempLog1)); //Use <strong>attach_ms</strong> if you need time in ms
-    //liveTicker.attach(10, giveLive);
-    udpTicker(3600, udpTicker); // 1/hour
+    tempTicker.attach(60*5, writeTempLog(sensor1, tempLog1)); // 5 min step
+    udpTicker.attach(3600, UdpRequest); // 1 hour step
 }
+
 
 
 //------------------------------------------------- WEB METHODS - SETUP&HANDLE 
@@ -126,8 +122,8 @@ void setupWebServer(){
 
   server.on("/", handleRoot);
 
-  server.on("/udpTicker", [](){
-    server.send(200, "text/html", "Current time stamp is:  " + udpTicker());
+  server.on("/udpRequest", [](){
+    server.send(200, "text/html", "Current time stamp is:  " + udpRequest());
   });
 
   server.on("/ledRed1_On", [](){
@@ -187,7 +183,7 @@ void handleNotFound(){
   digitalWrite(led, 0);
 }
              
-//----------------------------- FILE
+//----------------------------- FILES 
              
 void setupFile(){
    Serial.println("Begin setup File");
@@ -294,7 +290,7 @@ void setupUdp(){
 }
 
 
-uint32_t udpTicker(){
+uint32_t udpRequest(){
   Serial.println("Sending NTP request ...\n");
   sendNTPpacket(timeServerIP);               // Send an NTP request
 

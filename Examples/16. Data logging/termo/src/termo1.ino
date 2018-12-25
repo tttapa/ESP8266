@@ -1,6 +1,7 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
@@ -23,38 +24,169 @@ const char* password = "***";
 #include "pass.h"
 
 //local wifi
+ESP8266WiFiMulti wifiMulti; 
 
+
+//dns init
 MDNSResponder mdns;
-ESP8266WebServer server(80);
+const char* mdnsName = "esp8266A";        // Domain name for the mDNS responder
 
+//web server init
+ESP8266WebServer server(80);
 
 //udp
 WiFiUDP UDP;                     // Create an instance of the WiFiUDP class to send and receive
 
-IPAddress timeServerIP;          // time.nist.gov NTP server address
-const char* NTPServerName =  "time.nist.gov";//"0.ubuntu.pool.ntp.org";//"time.nist.gov";
+IPAddress timeServerIP;          // NTP server address
+const char* NTPServerName =  "0.ubuntu.pool.ntp.org";//"time.nist.gov";
 
 const int NTP_PACKET_SIZE = 48;  // NTP time stamp is in the first 48 bytes of the message
 
 byte NTPBuffer[NTP_PACKET_SIZE]; // buffer to hold incoming and outgoing packets
 uint32_t timeUNIX = 0;
 
-//
+//ports
 const int led = 13;
-const int ledRed1 = 4;
-const int ledRed2 = 14;
-
-
+const int ledRed1 = 14;
 #define ONE_WIRE_BUS 2
-const char* filename = "/temps_pokoj.txt";
+
+//files
+const char* tempLog1 = "/temp1.log";
 
 //term
 OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature.
-DallasTemperature sensors(&oneWire);
+DallasTemperature sensor1(&oneWire);
 
-Ticker writeTempTicker;
-Ticker liveTicker;
+//Tickers
+Ticker tempTicker;
+Ticker udpTicker;
+
+void setup(void){
+  //delay(3000); to debug purpose
+
+  Serial.begin(115200);
+  Serial.println("Begin setup");
+
+  sensor1.begin();
+
+  //set pins
+  pinMode(led, OUTPUT);
+  pinMode(ledRed1, OUTPUT);
+
+  digitalWrite(led, 0);
+
+  setupWifi();  
+  //setup WifireplyPacket
+  //WiFi.begin(ssid, password);
+
+  setupOta();
+
+  setupFile();
+  
+  setupMDNS(); 
+
+  setupWebServer();
+  
+  //Udp
+  setupUdp();
+
+  WiFi.hostByName(ntpServerName, timeServerIP); // Get the IP address of the NTP server
+  Serial.print("Time server IP: " + timeServerIP);
+  
+  //First init Udp
+  sendNTPpacket(timeServerIP);
+  
+  //init udp request
+  udpRequest();
+  
+  delay(500);
+  Serial.println("End setup");
+}
+
+//---------------------------------------- TICKS :)
+void tickerSetup(){
+    tempTicker.attach(60*5, writeTempLog(sensor1, tempLog1)); // 5 min step
+    udpTicker.attach(3600, UdpRequest); // 1 hour step
+}
+
+
+//------------------------------------------------- WIFI
+
+void setupWiFi() { // Try to connect to some given access points. Then wait for a connection
+  wifiMulti.addAP(ssid, password);   // add Wi-Fi networks you want to connect to
+  //wifiMulti.addAP("ssid_from_AP_2", "your_password_for_AP_2");
+  //wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
+
+  Serial.println("Connecting");
+  while (wifiMulti.run() != WL_CONNECTED) {  // Wait for the Wi-Fi to connect
+    delay(250);
+    Serial.print('.');
+  }
+  Serial.println("\r\n");
+  Serial.print("Connected to ");
+  Serial.println(WiFi.SSID());             // Tell us what network we're connected to
+  Serial.print("IP address:\t");
+  Serial.print(WiFi.localIP());            // Send the IP address of the ESP8266 to the computer
+  Serial.println("\r\n");
+}
+
+//------------------------------------------------- WEB METHODS - SETUP&HANDLE 
+
+void setupWebServer(){
+  Serial.println("Begin setup webServer");
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  //Serial.print("Connected to " + ssid);
+  Serial.print("IP address: " + WiFi.localIP());
+
+  if (mdns.begin("esp8266", WiFi.localIP())) {
+    Serial.println("MDNS responder started");
+  }
+
+  server.on("/", handleRoot);
+
+  server.on("/udpRequest", [](){
+    server.send(200, "text/html", "Current time stamp is:  " + udpRequest());
+  });
+
+  server.on("/ledRed1_On", [](){
+    server.send(200, "text/plain", "run Red diode 1 ON heh");
+    digitalWrite(ledRed1, HIGH);   // włączmy diodę, podajemy stan wysoki
+    Serial.println("ledRed1 On");
+
+  });
+
+  server.on("/ledRed1_Off", [](){
+    server.send(200, "text/plain", "run Red diode 1 ON");
+    digitalWrite(ledRed1, LOW);   // włączmy diodę, podajemy stan wysoki
+    Serial.println("ledRed1 Off");
+  });
+
+   server.on("/getLog1", [](){
+        server.send(200, "text/html",  readTempLog(tempLog1));
+  });
+
+  server.on("/Sensor1", [](){
+     sensor1.requestTemperatures();
+     delay(500);
+     float sensorValue = sensor1.getTempCByIndex(0);
+     String temp = String(sensorValue);
+     String message = "Current temperature from sensor 1 is: " + temp + "C";
+     Serial.println(message);
+     server.send(200, "text/html", message);
+  });
+
+  server.onNotFound(handleNotFound);
+
+  server.begin();
+
+  Serial.println("HTTP server started");
+}
 
 void handleRoot() {
   digitalWrite(led, 1);
@@ -79,40 +211,113 @@ void handleNotFound(){
   digitalWrite(led, 0);
 }
 
-void setup(void){
+//----------------------------- MDNS
 
-  //delay(3000);
-
-  Serial.begin(115200);
-  Serial.println("Begin setup");
-
-  // Inicjacja czujnika
-  sensors.begin();
-
-  pinMode(led, OUTPUT);
-  pinMode(ledRed1, OUTPUT); // ustawiamy pin jako wyjście
-  pinMode(ledRed2, OUTPUT); // ustawiamy pin jako wyjście
-
-
-  digitalWrite(led, 0);
-
-  //setup WifireplyPacket
-  WiFi.begin(ssid, password);
-
-  //OTA init
-  setupOta();
-
-  setupFile();
-
-  tickerSetup();
-
-  setupUdp();
-
-  setupWebServer();
-
-  Serial.println("End setup");
+void setupMDNS(){
+  MDNS.begin(mdnsName);                        
+  Serial.print("mDNS responder started: http://");
+  Serial.print(mdnsName);
+  Serial.println(".local");
 }
 
+//----------------------------- FILES 
+             
+void setupFile(){
+   Serial.println("Begin setup File");
+  
+  SPIFFS.begin();                             // Start the SPI Flash File System (SPIFFS)
+  Serial.println("SPIFFS started. Contents:");
+  {
+    Dir dir = SPIFFS.openDir("/");
+    while (dir.next()) {                      // List the file system contents
+      String fileName = dir.fileName();
+      size_t fileSize = dir.fileSize();
+      Serial.printf("\tFS File: %s, size: %s\r\n", fileName.c_str(), formatBytes(fileSize).c_str());
+    }
+    Serial.printf("\n");
+  }
+  
+  Serial.println("End setup File");
+}
+
+             
+void writeTempLog(DallasTemperature sensor, const char* fileName){
+ //read temp
+ sensor.requestTemperatures();
+ Serial.println("");
+ delay(700); //wait 700 msec
+  
+ Serial.print("Temp requested: ");
+ float sensorValue1 = sensor.getTempCByIndex(0);
+
+ String temp = String((sensorValue1));
+ Serial.println("Current temperature is " + temp + " Celsius's");
+ uint32_t timeStamp  = getTime()/1000;   
+
+  //write to file
+  File tempLog = SPIFFS.open(fileName, "a");
+
+  if (!f) {
+      Serial.println("file open to write failed");
+   }
+   else{
+      tempLog.print(timeStamp);
+      tempLog.print(',');
+      tempLog.println(temp);
+    }
+
+  tempLog.close();  //Close file
+}
+     
+//Read File data
+String readTempLog(const char* fileName){
+    String data;
+    File f = SPIFFS.open(fileName, "r");
+
+    if (!f) {
+      Serial.println("file open failed");
+    }
+    else{
+        Serial.println("Reading Data from File:");
+        //Data from file
+
+         while (f.available()){
+           data += char(f.read());
+         }
+
+        Serial.println("File Closed");
+     }
+     f.close();  //Close file      
+     return data;
+ }
+  
+//---------------------------------- OTA
+ void setupOta(){
+    Serial.println("Begin setup OTA");
+
+    ArduinoOTA.onStart([]() {
+      Serial.println("Start");
+    });
+    ArduinoOTA.onEnd([]() {
+      Serial.println("\nEnd");
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    });
+    ArduinoOTA.onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    });
+    ArduinoOTA.begin();
+
+   Serial.println("End setup OTA");
+}
+
+//----------------------------------------- UDP TIME
 void setupUdp(){
   Serial.println("Starting UDP");
   UDP.begin(123);                          // Start listening for UDP messages on port 123
@@ -120,267 +325,23 @@ void setupUdp(){
   Serial.println(UDP.localPort());
   Serial.println();
 }
-void tickerSetup(){
-  //Initialize Ticker every 0.5s
-    //writeTempTicker.attach(60, writeTempToFile); //Use <strong>attach_ms</strong> if you need time in ms
-    //liveTicker.attach(10, giveLive);
-    //udpTicker(30, udpTicker);
-}
 
 
-
-void udpTicker(){
-  Serial.println("\r\nSending NTP request ...");
+uint32_t udpRequest(){
+  Serial.println("Sending NTP request ...\n");
   sendNTPpacket(timeServerIP);               // Send an NTP request
 
-
- uint32_t time = getTime();                   // Check if an NTP response has arrived and get the (UNIX) time
- if (time) {                                  // If a new timestamp has been received
-   timeUNIX = time;
-   Serial.print("NTP response:\t");
-   Serial.println(timeUNIX);
- }
-
+  uint32_t time = getTime();                   // Check if an NTP response has arrived and get the (UNIX) time
+  if (time) {                                  // If a new timestamp has been received
+   Serial.print("NTP response: " + time);
+  }
+  else{
+    Serial.print("Error NTP response");
+  }
+  
+  return time;
 }
 
-
-
-void giveLive(){
-  digitalWrite(ledRed2, HIGH);   // włączmy diodę, podajemy stan wysoki
-  delay(1000);                  // czekamy sekundę
-  digitalWrite(ledRed2, LOW);    // wyłączamy diodę, podajemy stan niski
-}
-
-void writeTempToFile(){
-
-  digitalWrite(ledRed1, HIGH);   // włączmy diodę, podajemy stan wysoki
-  digitalWrite(ledRed2, HIGH);   // włączmy diodę, podajemy stan wysoki
-
- //read temp
-
- sensors.requestTemperatures();
- Serial.println("");
- delay(1000);
- Serial.print("Sensor 1: ");
- //int sensorValue = sensors.getTempCByIndex(0);
- float sensorValue1 = sensors.getTempCByIndex(0);
-
- String temp = String((sensorValue1));
- Serial.println("Current temperature is " + temp + " Celsius's");
- String data = "";
-
-  //write to filename
-  File f = SPIFFS.open(filename, "a");
-
- if (!f) {
-      Serial.println("file open to write failed");
-    }
-    else
-    {
-        //Write data to file
-        f.print(data + "{ t: " +  temp + " u: C} \n" );
-    }
-
- f.close();  //Close file
-
- delay(3000);
- digitalWrite(ledRed1, LOW);   // włączmy diodę, podajemy stan wysoki
- digitalWrite(ledRed2, LOW);   // włączmy diodę, podajemy stan wysoki
-}
-
-void setupWebServer(){
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  //Serial.print("Connected to " + ssid);
-  Serial.print("IP address: " + WiFi.localIP());
-
-  if (mdns.begin("esp8266", WiFi.localIP())) {
-    Serial.println("MDNS responder started");
-  }
-
-  server.on("/", handleRoot);
-
-
-  server.on("/udpTicker", [](){
-
-    udpTicker();
-    String date = "none";
-    server.send(200, "text/html", "Current d&t is:  " + date);
-  });
-
-  server.on("/inline", [](){
-    server.send(200, "text/plain", "this works as well");
-  });
-
-  server.on("/ledRed1_On", [](){
-    server.send(200, "text/plain", "run Red diode 1 ON heh");
-    digitalWrite(ledRed1, HIGH);   // włączmy diodę, podajemy stan wysoki
-    Serial.println("ledRed1 On");
-
-  });
-
-  server.on("/ledRed1_Off", [](){
-    server.send(200, "text/plain", "run Red diode 1 ON");
-    digitalWrite(ledRed1, LOW);   // włączmy diodę, podajemy stan wysoki
-    Serial.println("ledRed1 Off");
-  });
-
- server.on("/getTemperatures", [](){
-  //Read File data
-  File f = SPIFFS.open(filename, "r");
-
-  if (!f) {
-    Serial.println("file open failed");
-  }
-  else
-  {
-      String r = "";
-      Serial.println("Reading Data from File:");
-      //Data from file
-
-      String data;
-
-       while (f.available()){
-         data += char(f.read());
-       }
-
-      Serial.println("File Closed");
-
-      server.send(200, "text/html", "Temperatury na kaloryferze \n" + data + " size:"  + f.size());
-
-      f.close();  //Close file
-  }
-});
-
-  server.on("/getTemperature", [](){
-     sensors.requestTemperatures();
-     Serial.println("");
-     delay(500);
-     Serial.print("Sensor 1: ");
-     //int sensorValue = sensors.getTempCByIndex(0);
-     float sensorValue = sensors.getTempCByIndex(0);
-     String temp = String(sensorValue);
-     Serial.println("Current temperature is " + temp + " Celsius's");
-     server.send(200, "text/html", "Temperatura na kaloryferze " +  temp + " C") ;
-  });
-
-  server.on("/ledRed2_On", [](){
-    server.send(200, "text/plain", "run Red diode 2 ON heh");
-    digitalWrite(ledRed2, HIGH);   // włączmy diodę, podajemy stan wysoki
-    Serial.println("ledRed2 On mskocz");
-
-  });
-
-  server.on("/ledRed2_Off", [](){
-    server.send(200, "text/plain", "run Red diode 2 ON");
-    digitalWrite(ledRed2, LOW);   // włączmy diodę, podajemy stan wysoki
-    Serial.println("ledRed2 Off");
-  });
-
-
-
-  server.onNotFound(handleNotFound);
-
-  server.begin();
-
-  Serial.println("HTTP server started");
-}
-
-void setupFile(){
-
-  //Initialize File System
-  if(SPIFFS.begin())
-  {
-    Serial.println("SPIFFS Initialize....ok");
-  }
-  else
-  {
-    Serial.println("SPIFFS Initialization...failed");
-  }
-
-  //Format File System
-  if(SPIFFS.format())
-  {
-    Serial.println("File System Formated");
-  }
-  else
-  {
-    Serial.println("File System Formatting Error");
-  }
-
-  //Create New File And Write Data to It
-  //w=Write Open file for writing
-  File f = SPIFFS.open(filename, "w");
-
-  if (!f) {
-    Serial.println("file open failed");
-  }
-  else
-  {
-      //Write data to file
-      Serial.println("Begin Line");
-      f.print("{temp: 0}");
-      f.close();  //Close file
-  }
-}
-
-void setupOta(){
-
-Serial.println("Begin setup OTA");
-
-ArduinoOTA.onStart([]() {
-  Serial.println("Start");
-});
-ArduinoOTA.onEnd([]() {
-  Serial.println("\nEnd");
-});
-ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-  Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-});
-ArduinoOTA.onError([](ota_error_t error) {
-  Serial.printf("Error[%u]: ", error);
-  if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-  else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-  else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-  else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-  else if (error == OTA_END_ERROR) Serial.println("End Failed");
-});
-ArduinoOTA.begin();
-
-   Serial.println("End setup OTA");
-}
-
-
-void loopRedDiode1(){
-  digitalWrite(ledRed1, HIGH);   // włączmy diodę, podajemy stan wysoki
-  delay(300);                  // czekamy sekundę
-  digitalWrite(ledRed1, LOW);    // wyłączamy diodę, podajemy stan niski
-}
-
-
-unsigned long previousTime = millis();
-
-const unsigned long interval = 1000;
-
-void loop() {
-
-
-  server.handleClient();
-
-  ArduinoOTA.handle();
-  unsigned long diff = millis() - previousTime;
-  if(diff > interval) {
-    digitalWrite(led, !digitalRead(led));  // Change the state of the LED
-    previousTime += diff;
-  }
-}
-
-
-//udp methods
 uint32_t getTime() {
   if (UDP.parsePacket() == 0) { // If there's no response (yet)
     return 0;
@@ -406,14 +367,8 @@ void sendNTPpacket(IPAddress& address) {
   UDP.endPacket();
 }
 
-inline int getSeconds(uint32_t UNIXTime) {
-  return UNIXTime % 60;
-}
-
-inline int getMinutes(uint32_t UNIXTime) {
-  return UNIXTime / 60 % 60;
-}
-
-inline int getHours(uint32_t UNIXTime) {
-  return UNIXTime / 3600 % 24;
+ //------------------------------------ MAIN LOOP 
+void loop() {
+  server.handleClient();
+  ArduinoOTA.handle();
 }

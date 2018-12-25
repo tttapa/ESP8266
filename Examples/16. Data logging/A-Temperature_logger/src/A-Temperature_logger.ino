@@ -7,6 +7,9 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <FS.h>
+#include <WebSocketsServer.h>
+
+
 #include "pass.h"
 
 #define ONE_HOUR 3600000UL
@@ -18,6 +21,9 @@ OneWire oneWire(TEMP_SENSOR_PIN);        // Set up a OneWire instance to communi
 DallasTemperature tempSensors(&oneWire); // Create an instance of the temperature sensor class
 
 ESP8266WebServer server(80);             // create a web server on port 80
+
+bool isConnectedWS = false;
+WebSocketsServer webSocketServer(81);    // create a websocket server on port 81
 
 File fsUploadFile;                                    // a File variable to temporarily store the received file
 
@@ -62,6 +68,9 @@ void setup() {
   startMDNS();                 // Start the mDNS responder
 
   startServer();               // Start a HTTP server with a file read handler and an upload handler
+
+  startWebSocket();            // Start a WebSocket server
+
 
   startUDP();                  // Start listening for UDP messages to port 123
 
@@ -127,17 +136,36 @@ void loop() {
       tempLog.print(',');
       tempLog.println(temp);
       tempLog.close();
+
+
+      webSocketServer.broadcastTXT("updateTemp");
+
+      //propagate to any connected clients
+      //if(isConnectedWS) {
+          //webSocket.sendTXT("21 C");
+      //}
     }
   } else {                                    // If we didn't receive an NTP response yet, send another request
     sendNTPpacket(timeServerIP);
     delay(500);
   }
 
+  webSocketServer.loop();                     //web socket loop
+
   server.handleClient();                      // run the server
   ArduinoOTA.handle();                        // listen for OTA events
 }
 
 /*__________________________________________________________SETUP_FUNCTIONS__________________________________________________________*/
+
+
+
+void startWebSocket() { // Start a WebSocket server
+  webSocketServer.begin();                          // start the websocket server
+  webSocketServer.onEvent(webSocketEvent);          // if there's an incomming websocket message, go to function 'webSocketEvent'
+  Serial.println("WebSocket server started.");
+}
+
 
 void startWiFi() { // Try to connect to some given access points. Then wait for a connection
   wifiMulti.addAP(ssid, password);   // add Wi-Fi networks you want to connect to
@@ -217,35 +245,9 @@ void startServer() { // Start a HTTP server with a file read handler and an uplo
   }, handleFileUpload);                       // go to 'handleFileUpload'
 
 
-
-
-  server.on("/getTemperatures", [](){
-
-  //Read File data
-  String filename  = "/temp.csv";
-  File f = SPIFFS.open(filename, "r");
-
-  if (!f) {
-    Serial.println("file open failed");
-  }
-  else
-  {
-      String r = "";
-      Serial.println("Reading Data from File:");
-      //Data from file
-
-      String data;
-
-       while (f.available()){
-         data += char(f.read());
-       }
-
-      Serial.println("File Closed");
-
-      server.send(200, "text/html", "Temperatury na kaloryferze \n" + data + " size:"  + f.size());
-
-      f.close();  //Close file
-  }
+server.on("/sendMessage", [](){
+  webSocketServer.broadcastTXT("send web letter to everyone (server)");
+  server.send(200, "text/html", "Temperatury na kaloryferze \n" );
 });
 
 
@@ -254,6 +256,46 @@ void startServer() { // Start a HTTP server with a file read handler and an uplo
 
   server.begin();                             // start the HTTP server
   Serial.println("HTTP server started.");
+}
+
+/* Web Socket Handlers */
+
+
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) { // When a WebSocket message is received
+  switch (type) {
+    case WStype_DISCONNECTED:             // if the websocket is disconnected
+      Serial.printf("[%u] Disconnected!\n", num);
+      isConnectedWS = false;
+      break;
+    case WStype_CONNECTED: {              // if a new websocket connection is established
+        IPAddress ip = webSocketServer.remoteIP(num);
+        isConnectedWS = true;
+        //String  log1 = sprintf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+        Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+
+        //File tempLog = SPIFFS.open("/webSocket.log", "a"); // Write the time and the temperature to the csv file
+        //tempLog.println("Connected by: ");
+        //tempLog.close();
+
+
+        webSocketServer.sendTXT(num, "Connected hurra");
+
+
+      }
+      break;
+    case WStype_TEXT:                     // if new text data is received
+      Serial.printf("[%u] get Text: %s\n", num, payload);
+
+      //File tempLog = SPIFFS.open("/webSocket.log", "a"); // Write the time and the temperature to the csv file
+
+      //char  sp[200];
+      //sprintf(sp, "[%u] get Text: %s\n", num, payload);
+
+      //tempLog.println( sp);
+      //tempLog.close();
+
+      break;
+  }
 }
 
 /*__________________________________________________________SERVER_HANDLERS__________________________________________________________*/

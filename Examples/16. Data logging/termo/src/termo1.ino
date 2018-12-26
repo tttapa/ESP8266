@@ -24,7 +24,7 @@ const char* password = "***";
 #include "pass.h"
 
 //local wifi
-ESP8266WiFiMulti wifiMulti; 
+ESP8266WiFiMulti wifiMulti;
 
 
 //dns init
@@ -38,7 +38,7 @@ ESP8266WebServer server(80);
 WiFiUDP UDP;                     // Create an instance of the WiFiUDP class to send and receive
 
 IPAddress timeServerIP;          // NTP server address
-const char* NTPServerName =  "0.ubuntu.pool.ntp.org";//"time.nist.gov";
+const char* ntpServerName =  "0.ubuntu.pool.ntp.org";//"time.nist.gov";
 
 const int NTP_PACKET_SIZE = 48;  // NTP time stamp is in the first 48 bytes of the message
 
@@ -76,40 +76,73 @@ void setup(void){
 
   digitalWrite(led, 0);
 
-  setupWifi();  
+  setupWiFi();
   //setup WifireplyPacket
   //WiFi.begin(ssid, password);
+
+  //ArduinoOTA
+
 
   setupOta();
 
   setupFile();
-  
-  setupMDNS(); 
+
+  setupMDNS();
 
   setupWebServer();
-  
+
   //Udp
   setupUdp();
 
   WiFi.hostByName(ntpServerName, timeServerIP); // Get the IP address of the NTP server
   Serial.print("Time server IP: " + timeServerIP);
-  
+
   //First init Udp
   sendNTPpacket(timeServerIP);
-  
+
   //init udp request
   udpRequest();
-  
+
   delay(500);
   Serial.println("End setup");
 }
 
 //---------------------------------------- TICKS :)
 void tickerSetup(){
-    tempTicker.attach(60*5, writeTempLog(sensor1, tempLog1)); // 5 min step
-    udpTicker.attach(3600, UdpRequest); // 1 hour step
+    tempTicker.attach(60*5, writeTempLogKaloryfer); // 5 min step
+    udpTicker.attach(3600, sendNTPpacket);      // Send an NTP request); // 1 hour step
 }
 
+
+//---------------------------------- OTA //
+
+void setupOta(){
+  Serial.println("Begin setup OTA");
+
+  //ArduinoOTA.setHostname(OTAName);
+  //ArduinoOTA.setPassword(OTAPassword);
+
+    ArduinoOTA.onStart([]() {
+      Serial.println("Start");
+    });
+    ArduinoOTA.onEnd([]() {
+      Serial.println("\r\nEnd");
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    });
+    ArduinoOTA.onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    });
+    ArduinoOTA.begin();
+
+   Serial.println("End setup OTA");
+}
 
 //------------------------------------------------- WIFI
 
@@ -131,7 +164,7 @@ void setupWiFi() { // Try to connect to some given access points. Then wait for 
   Serial.println("\r\n");
 }
 
-//------------------------------------------------- WEB METHODS - SETUP&HANDLE 
+//------------------------------------------------- WEB METHODS - SETUP&HANDLE
 
 void setupWebServer(){
   Serial.println("Begin setup webServer");
@@ -214,17 +247,17 @@ void handleNotFound(){
 //----------------------------- MDNS
 
 void setupMDNS(){
-  MDNS.begin(mdnsName);                        
+  MDNS.begin(mdnsName);
   Serial.print("mDNS responder started: http://");
   Serial.print(mdnsName);
   Serial.println(".local");
 }
 
-//----------------------------- FILES 
-             
+//----------------------------- FILES
+
 void setupFile(){
    Serial.println("Begin setup File");
-  
+
   SPIFFS.begin();                             // Start the SPI Flash File System (SPIFFS)
   Serial.println("SPIFFS started. Contents:");
   {
@@ -236,39 +269,55 @@ void setupFile(){
     }
     Serial.printf("\n");
   }
-  
+
   Serial.println("End setup File");
 }
 
-             
-void writeTempLog(DallasTemperature sensor, const char* fileName){
+String formatBytes(size_t bytes) { // convert sizes in bytes to KB and MB
+  if (bytes < 1024) {
+    return String(bytes) + "B";
+  } else if (bytes < (1024 * 1024)) {
+    return String(bytes / 1024.0) + "KB";
+  } else if (bytes < (1024 * 1024 * 1024)) {
+    return String(bytes / 1024.0 / 1024.0) + "MB";
+  }
+}
+
+
+void writeTempLogKaloryfer(){
+  writeTempLog("kaloryfer", sensor1, tempLog1);
+}
+
+void writeTempLog(String etykiet, DallasTemperature sensor, const char* fileName){
  //read temp
  sensor.requestTemperatures();
  Serial.println("");
  delay(700); //wait 700 msec
-  
+
  Serial.print("Temp requested: ");
  float sensorValue1 = sensor.getTempCByIndex(0);
 
  String temp = String((sensorValue1));
  Serial.println("Current temperature is " + temp + " Celsius's");
- uint32_t timeStamp  = getTime()/1000;   
+ uint32_t timeStamp  = getTime()/1000;
 
   //write to file
   File tempLog = SPIFFS.open(fileName, "a");
 
-  if (!f) {
+  if (!tempLog) {
       Serial.println("file open to write failed");
    }
    else{
       tempLog.print(timeStamp);
       tempLog.print(',');
       tempLog.println(temp);
+      tempLog.print(',');
+      tempLog.print(etykiet);
     }
 
   tempLog.close();  //Close file
 }
-     
+
 //Read File data
 String readTempLog(const char* fileName){
     String data;
@@ -287,35 +336,10 @@ String readTempLog(const char* fileName){
 
         Serial.println("File Closed");
      }
-     f.close();  //Close file      
+     f.close();  //Close file
      return data;
  }
-  
-//---------------------------------- OTA
- void setupOta(){
-    Serial.println("Begin setup OTA");
 
-    ArduinoOTA.onStart([]() {
-      Serial.println("Start");
-    });
-    ArduinoOTA.onEnd([]() {
-      Serial.println("\nEnd");
-    });
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    });
-    ArduinoOTA.onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-      else if (error == OTA_END_ERROR) Serial.println("End Failed");
-    });
-    ArduinoOTA.begin();
-
-   Serial.println("End setup OTA");
-}
 
 //----------------------------------------- UDP TIME
 void setupUdp(){
@@ -338,9 +362,11 @@ uint32_t udpRequest(){
   else{
     Serial.print("Error NTP response");
   }
-  
+
   return time;
 }
+
+
 
 uint32_t getTime() {
   if (UDP.parsePacket() == 0) { // If there's no response (yet)
@@ -357,6 +383,9 @@ uint32_t getTime() {
   return UNIXTime;
 }
 
+void sendNTPpacket() {
+  sendNTPpacket(timeServerIP);
+}
 void sendNTPpacket(IPAddress& address) {
   memset(NTPBuffer, 0, NTP_PACKET_SIZE);  // set all bytes in the buffer to 0
   // Initialize values needed to form NTP request
@@ -367,7 +396,7 @@ void sendNTPpacket(IPAddress& address) {
   UDP.endPacket();
 }
 
- //------------------------------------ MAIN LOOP 
+ //------------------------------------ MAIN LOOP
 void loop() {
   server.handleClient();
   ArduinoOTA.handle();

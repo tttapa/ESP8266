@@ -11,9 +11,11 @@
 #include <FS.h>
 #include <Ticker.h>  //Ticker Library
 #include <string>
+#include <time.h>
 
 #include <Ethernet.h>
 #include <EthernetUdp.h>
+#include <WebSocketsServer.h>
 
 /*
 To store
@@ -26,19 +28,24 @@ const char* password = "***";
 //local wifi
 ESP8266WiFiMulti wifiMulti;
 
-
 //dns init
 MDNSResponder mdns;
-const char* mdnsName = "esp8266A";        // Domain name for the mDNS responder
+const char* mdnsName = "termo";        // Domain name for the mDNS responder
 
 //web server init
 ESP8266WebServer server(80);
+
+//web socket
+WebSocketsServer webSocketServer(81);    // create a websocket server on port 81
 
 //udp
 WiFiUDP UDP;                     // Create an instance of the WiFiUDP class to send and receive
 
 IPAddress timeServerIP;          // NTP server address
-const char* ntpServerName =  "0.ubuntu.pool.ntp.org";//"time.nist.gov";
+const char* ntpServer0 =  "0.ubuntu.pool.ntp.org";
+const char* ntpServer1 =  "1.ubuntu.pool.ntp.org";
+const char* ntpServer2 =  "2.ubuntu.pool.ntp.org";
+
 
 const int NTP_PACKET_SIZE = 48;  // NTP time stamp is in the first 48 bytes of the message
 
@@ -51,7 +58,7 @@ const int ledRed1 = 14;
 #define ONE_WIRE_BUS 2
 
 //files
-const char* tempLog1 = "/temp1.log";
+const char* tempLog1 = "/temp.csv";
 
 //term
 OneWire oneWire(ONE_WIRE_BUS);
@@ -60,7 +67,6 @@ DallasTemperature sensor1(&oneWire);
 
 //Tickers
 Ticker tempTicker;
-Ticker udpTicker;
 
 void setup(void){
   //delay(3000); to debug purpose
@@ -77,11 +83,6 @@ void setup(void){
   digitalWrite(led, 0);
 
   setupWiFi();
-  //setup WifireplyPacket
-  //WiFi.begin(ssid, password);
-
-  //ArduinoOTA
-
 
   setupOta();
 
@@ -91,26 +92,31 @@ void setup(void){
 
   setupWebServer();
 
-  //Udp
+  startWebSocket();            // Start a WebSocket server
+
   setupUdp();
 
-  WiFi.hostByName(ntpServerName, timeServerIP); // Get the IP address of the NTP server
-  Serial.print("Time server IP: " + timeServerIP);
+  int timezone = 1 * 3600;
+  int dst = 0;
 
-  //First init Udp
-  sendNTPpacket(timeServerIP);
+   configTime(timezone, dst, ntpServer0,ntpServer1, ntpServer2);
 
-  //init udp request
-  udpRequest();
+   while(!time(nullptr)){
+    Serial.print("*");
+    delay(1000);
+   }
+   Serial.println("\nTime response....OK");
 
-  delay(500);
+  tickerSetup();
   Serial.println("End setup");
 }
 
+
 //---------------------------------------- TICKS :)
 void tickerSetup(){
-    tempTicker.attach(60*5, writeTempLogKaloryfer); // 5 min step
-    udpTicker.attach(3600, sendNTPpacket);      // Send an NTP request); // 1 hour step
+    Serial.println("Begin TickerSetup");
+    tempTicker.attach(60*1, writeTempLog1); // 1 min step
+    Serial.println("End TickerSetup");
 }
 
 
@@ -147,6 +153,8 @@ void setupOta(){
 //------------------------------------------------- WIFI
 
 void setupWiFi() { // Try to connect to some given access points. Then wait for a connection
+  Serial.println("Begin setup Wifi");
+
   wifiMulti.addAP(ssid, password);   // add Wi-Fi networks you want to connect to
   //wifiMulti.addAP("ssid_from_AP_2", "your_password_for_AP_2");
   //wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
@@ -162,6 +170,43 @@ void setupWiFi() { // Try to connect to some given access points. Then wait for 
   Serial.print("IP address:\t");
   Serial.print(WiFi.localIP());            // Send the IP address of the ESP8266 to the computer
   Serial.println("\r\n");
+
+  Serial.println("End setup Wifi");
+}
+
+//------------------------------------------------- WEB SOCKET method
+
+void startWebSocket() { // Start a WebSocket server
+  webSocketServer.begin();                          // start the websocket server
+  webSocketServer.onEvent(webSocketEvent);          // if there's an incomming websocket message, go to function 'webSocketEvent'
+  Serial.println("WebSocket server started.");
+}
+
+
+/* Web Socket Handlers */
+
+
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) { // When a WebSocket message is received
+  switch (type) {
+    case WStype_DISCONNECTED:             // if the websocket is disconnected
+      Serial.printf("[%u] Disconnected!\n", num);
+
+      break;
+    case WStype_CONNECTED: {              // if a new websocket connection is established
+        IPAddress ip = webSocketServer.remoteIP(num);
+
+        //String  log1 = sprintf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+        Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+
+        webSocketServer.sendTXT(num, "Connected hurra");
+        broadcastTempLog1(num, sensor1);
+      }
+      break;
+    case WStype_TEXT:                     // if new text data is received
+      Serial.printf("[%u] get Text: %s\n", num, payload);
+
+      break;
+  }
 }
 
 //------------------------------------------------- WEB METHODS - SETUP&HANDLE
@@ -181,76 +226,140 @@ void setupWebServer(){
     Serial.println("MDNS responder started");
   }
 
-  server.on("/", handleRoot);
+  server.on("/clearFiles", handleClearFiles);
 
-  server.on("/udpRequest", [](){
-    server.send(200, "text/html", "Current time stamp is:  " + udpRequest());
+  server.on("/handleTime", handleTime);
+
+  server.on("/upload", HTTP_GET, []() {                 // if the client requests the upload page
+    server.send(200, "text/html", "<!DOCTYPE html><html><head><title>ESP8266 SPIFFS File Upload</title><link rel='stylesheet' type='text/css' href='main.css'></head><body><h1>ESP8266 SPIFFS File Upload</h1><p>Select a new file to upload to the ESP8266. Existing files will be replaced.</p><form method='POST' enctype='multipart/form-data'><input type='file' name='data'><input class='button' type='submit' value='Upload'></form></body></html>");
   });
 
-  server.on("/ledRed1_On", [](){
-    server.send(200, "text/plain", "run Red diode 1 ON heh");
-    digitalWrite(ledRed1, HIGH);   // włączmy diodę, podajemy stan wysoki
-    Serial.println("ledRed1 On");
-
-  });
-
-  server.on("/ledRed1_Off", [](){
-    server.send(200, "text/plain", "run Red diode 1 ON");
-    digitalWrite(ledRed1, LOW);   // włączmy diodę, podajemy stan wysoki
-    Serial.println("ledRed1 Off");
-  });
-
-   server.on("/getLog1", [](){
-        server.send(200, "text/html",  readTempLog(tempLog1));
-  });
-
-  server.on("/Sensor1", [](){
-     sensor1.requestTemperatures();
-     delay(500);
-     float sensorValue = sensor1.getTempCByIndex(0);
-     String temp = String(sensorValue);
-     String message = "Current temperature from sensor 1 is: " + temp + "C";
-     Serial.println(message);
-     server.send(200, "text/html", message);
-  });
+  server.on("/edit.html",  HTTP_POST, []() {  // If a POST request is sent to the /edit.html address,
+    server.send(200, "text/plain", "");
+  }, handleFileUpload);
 
   server.onNotFound(handleNotFound);
 
   server.begin();
 
-  Serial.println("HTTP server started");
+  Serial.println("End setup webserver");
 }
 
-void handleRoot() {
-  digitalWrite(led, 1);
-  server.send(200, "text/plain", "hello from esp8266 marysia and tosia and iza 76!");
-  digitalWrite(led, 0);
+void handleClearFiles(){
+      Serial.println("Begin handleClearFiles");
+      String fileName = "/temperatureGraph.js";
+      SPIFFS.remove(fileName);
+      if (!SPIFFS.exists(fileName))
+          Serial.println("has been removed: " + fileName);
+      else{
+        Serial.println("Removing problem: " + fileName);
+      }
+
+      Serial.println("End handleClearFiles");
+
 }
 
-void handleNotFound(){
-  digitalWrite(led, 1);
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET)?"GET":"POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-  for (uint8_t i=0; i<server.args(); i++){
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+void handleTime(){
+  Serial.println("Begin udpRequest\n");
+
+      time_t now = time(nullptr);
+      struct tm* p_tm = localtime(&now);
+
+      Serial.print("TimeStamp is" );
+      Serial.println(now);
+
+      Serial.print(p_tm->tm_mday);
+      Serial.print("/");
+      Serial.print(p_tm->tm_mon + 1);
+      Serial.print("/");
+      Serial.print(p_tm->tm_year + 1900);
+
+      Serial.print(" ");
+
+      Serial.print(p_tm->tm_hour);
+      Serial.print(":");
+      Serial.print(p_tm->tm_min);
+      Serial.print(":");
+      Serial.println(p_tm->tm_sec);
+}
+
+void handleNotFound() { // if the requested file or page doesn't exist, return a 404 not found error
+  if (!handleFileRead(server.uri())) {        // check if the file exists in the flash memory (SPIFFS), if so, send it
+    server.send(404, "text/plain", "404: File Not Found");
   }
-  server.send(404, "text/plain", message);
-  digitalWrite(led, 0);
+}
+
+bool handleFileRead(String path) { // send the right file to the client (if it exists)
+  Serial.println("handleFileRead: " + path);
+  if (path.endsWith("/")) {
+    path += "index.html";
+            // If a folder is requested, send the index file
+
+    }
+  String contentType = getContentType(path);             // Get the MIME type
+  String pathWithGz = path + ".gz";
+  if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) { // If the file exists, either as a compressed archive, or normal
+    if (SPIFFS.exists(pathWithGz))                         // If there's a compressed version available
+      path += ".gz";                                         // Use the compressed verion
+    File file = SPIFFS.open(path, "r");                    // Open the file
+    size_t sent = server.streamFile(file, contentType);    // Send it to the client
+    file.close();                                          // Close the file again
+    Serial.println(String("\tSent file: ") + path);
+    return true;
+  }
+  Serial.println(String("\tFile Not Found: ") + path);   // If the file doesn't exist, return false
+  return false;
+}
+
+
+void handleFileUpload() { // upload a new file to the SPIFFS
+  File fsUploadFile;                                    // a File variable to temporarily store the received file
+  HTTPUpload& upload = server.upload();
+  String path;
+  if (upload.status == UPLOAD_FILE_START) {
+    path = upload.filename;
+    if (!path.startsWith("/")) path = "/" + path;
+    if (!path.endsWith(".gz")) {                         // The file server always prefers a compressed version of a file
+      String pathWithGz = path + ".gz";                  // So if an uploaded file is not compressed, the existing compressed
+      if (SPIFFS.exists(pathWithGz))                     // version of that file must be deleted (if it exists)
+        SPIFFS.remove(pathWithGz);
+    }
+    Serial.print("handleFileUpload Name: "); Serial.println(path);
+    fsUploadFile = SPIFFS.open(path, "w");               // Open the file for writing in SPIFFS (create if it doesn't exist)
+    path = String();
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+  http://termo.local/  if (fsUploadFile)
+      fsUploadFile.write(upload.buf, upload.currentSize); // Write the received bytes to the file
+  } else if (upload.status == UPLOAD_FILE_END) {
+    if (fsUploadFile) {                                   // If the file was successfully created
+      fsUploadFile.close();                               // Close the file again
+      Serial.print("handleFileUpload Size: "); Serial.println(upload.totalSize);
+      server.sendHeader("Location", "/success.html");     // Redirect the client to the success page
+      server.send(303);
+    } else {
+      server.send(500, "text/plain", "500: couldn't create file");
+    }
+  }
+}
+
+String getContentType(String filename) { // determine the filetype of a given filename, based on the extension
+  if (filename.endsWith(".html")) return "text/html";
+  else if (filename.endsWith(".css")) return "text/css";
+  else if (filename.endsWith(".js")) return "application/javascript";
+  else if (filename.endsWith(".ico")) return "image/x-icon";
+  else if (filename.endsWith(".gz")) return "application/x-gzip";
+  return "text/plain";
 }
 
 //----------------------------- MDNS
 
 void setupMDNS(){
+  Serial.println("Begin setup mdns");
   MDNS.begin(mdnsName);
   Serial.print("mDNS responder started: http://");
   Serial.print(mdnsName);
   Serial.println(".local");
+  Serial.println("End setup mdns");
 }
 
 //----------------------------- FILES
@@ -260,15 +369,14 @@ void setupFile(){
 
   SPIFFS.begin();                             // Start the SPI Flash File System (SPIFFS)
   Serial.println("SPIFFS started. Contents:");
-  {
-    Dir dir = SPIFFS.openDir("/");
-    while (dir.next()) {                      // List the file system contents
-      String fileName = dir.fileName();
-      size_t fileSize = dir.fileSize();
-      Serial.printf("\tFS File: %s, size: %s\r\n", fileName.c_str(), formatBytes(fileSize).c_str());
-    }
-    Serial.printf("\n");
+
+  Dir dir = SPIFFS.openDir("/");
+  while (dir.next()) {                      // List the file system contents
+    String fileName = dir.fileName();
+    size_t fileSize = dir.fileSize();
+    Serial.printf("\tFS File: %s, size: %s\r\n", fileName.c_str(), formatBytes(fileSize).c_str());
   }
+  Serial.printf("\n");
 
   Serial.println("End setup File");
 }
@@ -283,12 +391,25 @@ String formatBytes(size_t bytes) { // convert sizes in bytes to KB and MB
   }
 }
 
+void writeTempLog1(){
+  writeTempLog("t1", sensor1, tempLog1);
+}
 
-void writeTempLogKaloryfer(){
-  writeTempLog("kaloryfer", sensor1, tempLog1);
+void broadcastTempLog1(uint8_t num, DallasTemperature sensor){
+  //writeTempLog("t1", sensor1, tempLog1);
+
+  Serial.print("Temp requested: ");
+  sensor.requestTemperatures();
+  Serial.println("");
+  delay(700); //wait 700 msec
+  float sensorValue1 = sensor.getTempCByIndex(0);
+
+  String temp = String((sensorValue1));
+  webSocketServer.sendTXT(num, "updateTemp:" + String(temp));
 }
 
 void writeTempLog(String etykiet, DallasTemperature sensor, const char* fileName){
+  Serial.println("Begin writeTempLog");
  //read temp
  sensor.requestTemperatures();
  Serial.println("");
@@ -299,7 +420,8 @@ void writeTempLog(String etykiet, DallasTemperature sensor, const char* fileName
 
  String temp = String((sensorValue1));
  Serial.println("Current temperature is " + temp + " Celsius's");
- uint32_t timeStamp  = getTime()/1000;
+
+  time_t timeStamp = time(nullptr);
 
   //write to file
   File tempLog = SPIFFS.open(fileName, "a");
@@ -311,15 +433,22 @@ void writeTempLog(String etykiet, DallasTemperature sensor, const char* fileName
       tempLog.print(timeStamp);
       tempLog.print(',');
       tempLog.println(temp);
-      tempLog.print(',');
-      tempLog.print(etykiet);
+
+      //tempLog.print(',');
+      //tempLog.println(etykiet);
+
+      webSocketServer.broadcastTXT("updateTemp:" + String(temp));
     }
 
-  tempLog.close();  //Close file
+    tempLog.close();  //Close file
+
+
+  Serial.println("End writeTempLog");
 }
 
 //Read File data
 String readTempLog(const char* fileName){
+    Serial.println("Begin readTempLog");
     String data;
     File f = SPIFFS.open(fileName, "r");
 
@@ -337,67 +466,24 @@ String readTempLog(const char* fileName){
         Serial.println("File Closed");
      }
      f.close();  //Close file
+     Serial.println("End readTempLog");
      return data;
  }
 
 
 //----------------------------------------- UDP TIME
 void setupUdp(){
-  Serial.println("Starting UDP");
+  Serial.println("Begin setupUDP");
   UDP.begin(123);                          // Start listening for UDP messages on port 123
   Serial.print("Local port:\t");
   Serial.println(UDP.localPort());
-  Serial.println();
+  Serial.println("End setupUDP");
 }
 
-
-uint32_t udpRequest(){
-  Serial.println("Sending NTP request ...\n");
-  sendNTPpacket(timeServerIP);               // Send an NTP request
-
-  uint32_t time = getTime();                   // Check if an NTP response has arrived and get the (UNIX) time
-  if (time) {                                  // If a new timestamp has been received
-   Serial.print("NTP response: " + time);
-  }
-  else{
-    Serial.print("Error NTP response");
-  }
-
-  return time;
-}
-
-
-
-uint32_t getTime() {
-  if (UDP.parsePacket() == 0) { // If there's no response (yet)
-    return 0;
-  }
-  UDP.read(NTPBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
-  // Combine the 4 timestamp bytes into one 32-bit number
-  uint32_t NTPTime = (NTPBuffer[40] << 24) | (NTPBuffer[41] << 16) | (NTPBuffer[42] << 8) | NTPBuffer[43];
-  // Convert NTP time to a UNIX timestamp:
-  // Unix time starts on Jan 1 1970. That's 2208988800 seconds in NTP time:
-  const uint32_t seventyYears = 2208988800UL;
-  // subtract seventy years:
-  uint32_t UNIXTime = NTPTime - seventyYears;
-  return UNIXTime;
-}
-
-void sendNTPpacket() {
-  sendNTPpacket(timeServerIP);
-}
-void sendNTPpacket(IPAddress& address) {
-  memset(NTPBuffer, 0, NTP_PACKET_SIZE);  // set all bytes in the buffer to 0
-  // Initialize values needed to form NTP request
-  NTPBuffer[0] = 0b11100011;   // LI, Version, Mode
-  // send a packet requesting a timestamp:
-  UDP.beginPacket(address, 123); // NTP requests are to port 123
-  UDP.write(NTPBuffer, NTP_PACKET_SIZE);
-  UDP.endPacket();
-}
 
  //------------------------------------ MAIN LOOP
 void loop() {
   server.handleClient();
+  webSocketServer.loop();
   ArduinoOTA.handle();
 }

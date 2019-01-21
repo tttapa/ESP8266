@@ -44,12 +44,3 @@ center>div {
 .button:hover {
     box-shadow: 1px 1px 3px #444;
 }
-
-
-temp_up {
-  color : green;
-}
-
-temp_down {
-  color : blue;
-}

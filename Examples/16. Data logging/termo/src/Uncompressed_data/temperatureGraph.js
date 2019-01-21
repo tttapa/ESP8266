@@ -1,33 +1,80 @@
-var connection = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);
+
+var ws = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);
 var currentTemp = "";
 var isUp = false;
 
-connection.onopen = function () {
-    connection.send('This is Connect ' + new Date());
+
+this.send = function (message, callback) {
+    this.waitForConnection(function () {
+        ws.send(message);
+        if (typeof callback !== 'undefined') {
+          callback();
+        }
+    }, 1000);
 };
-connection.onerror = function (error) {
+
+this.waitForConnection = function (callback, interval) {
+    if (ws.readyState === 1) {
+        callback();
+    } else {
+        var that = this;
+        // optional: implement backoff for interval here
+        setTimeout(function () {
+            that.waitForConnection(callback, interval);
+        }, interval);
+    }
+};
+
+
+ws.onopen = function () {
+    this.send('This is Connect ' + new Date());
+};
+ws.onerror = function (error) {
     console.log('WebSocket Error ', error);
 };
 
-connection.onmessage = function (e) {
+String.prototype.format = function() {
+    var formatted = this;
+    for( var arg in arguments ) {
+        formatted = formatted.replace("{" + arg + "}", arguments[arg]);
+    }
+    return formatted;
+};
+
+ws.onmessage = function (e) {
     console.log('Server: ', e.data);
 
-    if(e.data.startsWith( "updateTemp")){
+    //if(e.data.startsWith( "updateTemp")){
+   try{
+     var json = JSON.parse(e.data);
+     if(json){
+        var prevTemp = localStorage.getItem("currentTemp");
+        currentTemp = json.temperature//e.data.split(":")[1];
 
-      currentTemp = e.data.split(":")[1];
-      var dataArray = [];
+        var dt = new Date(json.time*1000);
+        var time = dt.getHours() + ":" + dt.getMinutes() + ":" + dt.getSeconds();
+        var mess = 'Server: temperature: {0} measured at {1} diff is {2}' ;
 
-      var defaultZoomTime = 24*60*60*1000; // 1 day
-      var minZoom = -6; // 22 minutes 30 seconds
-      var maxZoom = 8; // ~ 8.4 months
+        console.log(mess.format(currentTemp, time, currentTemp - prevTemp));
 
-      var zoomLevel = 0;
-      var viewportEndTime = new Date();
-      var viewportStartTime = new Date();
+        var dataArray = [];
 
-      loadCSV(); // Download the CSV data, load Google Charts, parse the data, and draw the chart
+        var defaultZoomTime = 24*60*60*1000; // 1 day
+        var minZoom = -6; // 22 minutes 30 seconds
+        var maxZoom = 8; // ~ 8.4 months
 
-    }
+        var zoomLevel = 0;
+        var viewportEndTime = new Date();
+        var viewportStartTime = new Date();
+
+        loadCSV(); // Download the CSV data, load Google Charts, parse the data, and draw the chart
+
+      }
+  }
+  catch(e){
+    console.log("This is propably not json object" + e );
+  }
+
 };
 
 var dataArray = [];

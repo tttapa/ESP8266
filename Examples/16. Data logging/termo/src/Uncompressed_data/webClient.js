@@ -9,23 +9,29 @@ connection.onerror = function (error) {
 connection.onmessage = function (e) {
     console.log('Server: ', e.data);
 
-    if(e.data.startsWith( "updateTemp")){
+    try{
+      var json = JSON.parse(e.data);
+      if(json){
+        var currentTemp =  json.temperature;//e.data.split(":")[1];
+        var prevTemp = localStorage.getItem("currentTemp");
 
+        localStorage.setItem("currentTemp", currentTemp);
 
-      var currentTemp = e.data.split(":")[1];
-      var prevTemp = localStorage.getItem("currentTemp");
+        var tempTitle = currentTemp + "&#8451;"; //celsius
+        if(prevTemp != currentTemp ){
+          tempTitle += ( parseFloat(prevTemp) < parseFloat(currentTemp) ?   "&#8593;" : "&#8595;" )
+        }
 
-      localStorage.setItem("currentTemp", currentTemp);
+        var b = document.getElementById ("current_temperature");
 
-      var tempTitle = currentTemp + "&#8451;"; //celsius
-      if(prevTemp != currentTemp ){
-        tempTitle += ( parseFloat(prevTemp) < parseFloat(currentTemp) ?   "&#8593;" : "&#8595;" )
+        if(b != null)
+          var dt = new Date(json.time*1000);
+          var mess = dt.getHours() + ":" + dt.getMinutes() + ":" + dt.getSeconds();
+          b.innerHTML = tempTitle + " at: " + mess;
       }
-
-      var b = document.getElementById ("current_temperature");
-
-      if(b != null)
-        b.innerHTML = tempTitle;
+    }
+    catch(e){
+      console.log("This is propably not json object" + e );
     }
 };
 

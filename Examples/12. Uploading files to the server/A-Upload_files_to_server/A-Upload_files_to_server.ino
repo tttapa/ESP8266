@@ -45,9 +45,9 @@ void setup() {
   SPIFFS.begin();                           // Start the SPI Flash Files System
 
   server.on("/upload", HTTP_GET, []() {                 // if the client requests the upload page
-    if (!handleFileRead("/upload.html"))                // send it if it exists
-      server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
-  });
+  server.send(200, "text/html", "<!DOCTYPE html><html><head><title>ESP8266 SPIFFS File Upload</title><link rel='stylesheet' type='text/css' href='main.css'></head><body><h1>ESP8266 SPIFFS File Upload</h1><p>Select a new file to upload to the ESP8266. Existing files will be replaced.</p><form method='POST' enctype='multipart/form-data'><input type='file' name='data'><input class='button' type='submit' value='Upload'></form></body></html>");
+  
+});
 
   server.on("/upload", HTTP_POST,                       // if the client posts to the upload page
     [](){},

@@ -1,5 +1,6 @@
 body {
     font-family: 'Roboto', sans-serif;
+	  background: url(cat.png) top center/cover #262626;	
 }
 center {
     width: 420px;

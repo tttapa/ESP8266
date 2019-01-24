@@ -1,0 +1,89 @@
+<html>
+  <head>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+    
+      google.charts.load('current', {'packages':['gauge']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+
+        var dataDwor = google.visualization.arrayToDataTable([
+          ['Label', 'Value'],
+          ['Dwor', 10]
+        ]);
+        
+        var dataDom = google.visualization.arrayToDataTable([
+          ['Label', 'Value'],
+          ['Dom', 20]
+        ]);
+        var dataPiec = google.visualization.arrayToDataTable([
+          ['Label', 'Value'],
+          ['Piec', 35]
+        ]);
+
+        var optionsDwor = {
+          width: 800, height: 240,
+          greenColor: '#0d5cbc',
+          greenFrom:-49, greenTo:-20,
+          yellowFrom:25, yellowTo: 30,
+          redFrom: 30, redTo: 40,
+          minorTicks: 5,
+          min: -40,
+          max : 40
+        };
+        
+        var optionsDom = {
+          width: 400, height: 120,
+          greenColor: '#0d5cbc',
+          greenFrom:10, greenTo:15,
+          yellowFrom:23, yellowTo: 25,
+          redFrom: 25, redTo: 30,
+          
+          minorTicks: 5,
+          min :10,
+          max : 35
+        };
+        
+        var optionsPiec = {
+          width: 400, height: 120,
+          greenColor: '#0d5cbc',
+          greenFrom:10, greenTo:30, 
+          yellowFrom:50, yellowTo: 70,
+          redFrom: 70, redTo: 100,
+          minorTicks: 5,
+          min : 0,
+          max : 100
+        };
+
+        var chartDom = new google.visualization.Gauge(document.getElementById('chartDom_div'));
+        chartDom.draw(dataDom, optionsDom);
+        
+        var chartDwor = new google.visualization.Gauge(document.getElementById('chartDwor_div'));
+        chartDwor.draw(dataDwor, optionsDwor);
+        
+        var chartPiec = new google.visualization.Gauge(document.getElementById('chartPiec_div'));
+        chartPiec.draw(dataPiec, optionsPiec);
+
+        setInterval(function() {
+          dataPiec.setValue(0, 1, 10 + Math.round(60 * Math.random()));
+          chartPiec.draw(dataPiec, optionsPiec);
+        }, 13000);
+        setInterval(function() {
+          dataDom.setValue(1, 1, 15 + Math.round(2 * Math.random()));
+          chartDom.draw(dataDom, optionsDom);
+        }, 5000);
+        setInterval(function() {
+          dataDwor.setValue(2, 1, 10 + Math.round(20 * Math.random()));
+          chartDwor.draw(dataDwor, optionsDwor);
+        }, 26000);
+      }
+       </script>
+  </head>
+  <body>
+    
+       <div id="chartDom_div" style="width: 400px; height: 120px;"></div>
+       <div id="chartPiec_div" style="width: 400px; height: 120px;"></div>
+       <div id="chartDwor_div" style="width: 400px; height: 120px;"></div>
+  </body>
+</html>

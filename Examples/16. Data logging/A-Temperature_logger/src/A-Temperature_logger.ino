@@ -7,10 +7,14 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <FS.h>
+#include <WebSocketsServer.h>
+
+
+#include "pass.h"
 
 #define ONE_HOUR 3600000UL
 
-#define TEMP_SENSOR_PIN 5
+#define TEMP_SENSOR_PIN 2
 
 OneWire oneWire(TEMP_SENSOR_PIN);        // Set up a OneWire instance to communicate with OneWire devices
 
@@ -18,11 +22,14 @@ DallasTemperature tempSensors(&oneWire); // Create an instance of the temperatur
 
 ESP8266WebServer server(80);             // create a web server on port 80
 
+bool isConnectedWS = false;
+WebSocketsServer webSocketServer(81);    // create a websocket server on port 81
+
 File fsUploadFile;                                    // a File variable to temporarily store the received file
 
 ESP8266WiFiMulti wifiMulti;    // Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'
 
-const char *OTAName = "ESP8266";         // A name and a password for the OTA service
+const char *OTAName = "DeviceLan";         // A name and a password for the OTA service
 const char *OTAPassword = "esp8266";
 
 const char* mdnsName = "esp8266";        // Domain name for the mDNS responder
@@ -48,8 +55,8 @@ void setup() {
 
   if (tempSensors.getDeviceCount() == 0) {
     Serial.printf("No DS18x20 temperature sensor found on pin %d. Rebooting.\r\n", TEMP_SENSOR_PIN);
-    Serial.flush();
-    ESP.reset();
+    //Serial.flush();
+  //  ESP.reset();
   }
 
   startWiFi();                 // Start a Wi-Fi access point, and try to connect to some given access points. Then wait for either an AP or STA connection
@@ -61,6 +68,9 @@ void setup() {
   startMDNS();                 // Start the mDNS responder
 
   startServer();               // Start a HTTP server with a file read handler and an upload handler
+
+  startWebSocket();            // Start a WebSocket server
+
 
   startUDP();                  // Start listening for UDP messages to port 123
 
@@ -78,7 +88,7 @@ const unsigned long intervalNTP = ONE_HOUR; // Update the time every hour
 unsigned long prevNTP = 0;
 unsigned long lastNTPResponse = millis();
 
-const unsigned long intervalTemp = 60000;   // Do a temperature measurement every minute
+const unsigned long intervalTemp = 60000*5;   // Do a temperature measurement every 5 minute
 unsigned long prevTemp = 0;
 bool tmpRequested = false;
 const unsigned long DS_delay = 750;         // Reading the temperature from the DS18x20 can take up to 750ms
@@ -126,11 +136,21 @@ void loop() {
       tempLog.print(',');
       tempLog.println(temp);
       tempLog.close();
+
+
+      webSocketServer.broadcastTXT("updateTemp");
+
+      //propagate to any connected clients
+      //if(isConnectedWS) {
+          //webSocket.sendTXT("21 C");
+      //}
     }
   } else {                                    // If we didn't receive an NTP response yet, send another request
     sendNTPpacket(timeServerIP);
     delay(500);
   }
+
+  webSocketServer.loop();                     //web socket loop
 
   server.handleClient();                      // run the server
   ArduinoOTA.handle();                        // listen for OTA events
@@ -138,10 +158,19 @@ void loop() {
 
 /*__________________________________________________________SETUP_FUNCTIONS__________________________________________________________*/
 
+
+
+void startWebSocket() { // Start a WebSocket server
+  webSocketServer.begin();                          // start the websocket server
+  webSocketServer.onEvent(webSocketEvent);          // if there's an incomming websocket message, go to function 'webSocketEvent'
+  Serial.println("WebSocket server started.");
+}
+
+
 void startWiFi() { // Try to connect to some given access points. Then wait for a connection
-  wifiMulti.addAP("ssid_from_AP_1", "your_password_for_AP_1");   // add Wi-Fi networks you want to connect to
-  wifiMulti.addAP("ssid_from_AP_2", "your_password_for_AP_2");
-  wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
+  wifiMulti.addAP(ssid, password);   // add Wi-Fi networks you want to connect to
+  //wifiMulti.addAP("ssid_from_AP_2", "your_password_for_AP_2");
+  //wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
 
   Serial.println("Connecting");
   while (wifiMulti.run() != WL_CONNECTED) {  // Wait for the Wi-Fi to connect
@@ -164,8 +193,9 @@ void startUDP() {
 }
 
 void startOTA() { // Start the OTA service
-  ArduinoOTA.setHostname(OTAName);
-  ArduinoOTA.setPassword(OTAPassword);
+
+  //ArduinoOTA.setHostname(OTAName);
+  //ArduinoOTA.setPassword(OTAPassword);
 
   ArduinoOTA.onStart([]() {
     Serial.println("Start");
@@ -214,11 +244,58 @@ void startServer() { // Start a HTTP server with a file read handler and an uplo
     server.send(200, "text/plain", "");
   }, handleFileUpload);                       // go to 'handleFileUpload'
 
+
+server.on("/sendMessage", [](){
+  webSocketServer.broadcastTXT("send web letter to everyone (server)");
+  server.send(200, "text/html", "Temperatury na kaloryferze \n" );
+});
+
+
   server.onNotFound(handleNotFound);          // if someone requests any other file or page, go to function 'handleNotFound'
   // and check if the file exists
 
   server.begin();                             // start the HTTP server
   Serial.println("HTTP server started.");
+}
+
+/* Web Socket Handlers */
+
+
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t lenght) { // When a WebSocket message is received
+  switch (type) {
+    case WStype_DISCONNECTED:             // if the websocket is disconnected
+      Serial.printf("[%u] Disconnected!\n", num);
+      isConnectedWS = false;
+      break;
+    case WStype_CONNECTED: {              // if a new websocket connection is established
+        IPAddress ip = webSocketServer.remoteIP(num);
+        isConnectedWS = true;
+        //String  log1 = sprintf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+        Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+
+        //File tempLog = SPIFFS.open("/webSocket.log", "a"); // Write the time and the temperature to the csv file
+        //tempLog.println("Connected by: ");
+        //tempLog.close();
+
+
+        webSocketServer.sendTXT(num, "Connected hurra");
+
+
+      }
+      break;
+    case WStype_TEXT:                     // if new text data is received
+      Serial.printf("[%u] get Text: %s\n", num, payload);
+
+      //File tempLog = SPIFFS.open("/webSocket.log", "a"); // Write the time and the temperature to the csv file
+
+      //char  sp[200];
+      //sprintf(sp, "[%u] get Text: %s\n", num, payload);
+
+      //tempLog.println( sp);
+      //tempLog.close();
+
+      break;
+  }
 }
 
 /*__________________________________________________________SERVER_HANDLERS__________________________________________________________*/

@@ -1,3 +1,32 @@
+var connection = new WebSocket('ws://'+location.hostname+':81/', ['arduino']);
+
+connection.onopen = function () {
+    connection.send('This is Connect ' + new Date());
+};
+connection.onerror = function (error) {
+    console.log('WebSocket Error ', error);
+};
+
+connection.onmessage = function (e) {
+    console.log('Server: ', e.data);
+
+    if(e.data == "updateTemp"){
+
+      var dataArray = [];
+
+      var defaultZoomTime = 24*60*60*1000; // 1 day
+      var minZoom = -6; // 22 minutes 30 seconds
+      var maxZoom = 8; // ~ 8.4 months
+
+      var zoomLevel = 0;
+      var viewportEndTime = new Date();
+      var viewportStartTime = new Date();
+
+      loadCSV(); // Download the CSV data, load Google Charts, parse the data, and draw the chart
+
+    }
+};
+
 var dataArray = [];
 
 var defaultZoomTime = 24*60*60*1000; // 1 day
@@ -64,18 +93,20 @@ function parseCSV(string) {
 }
 
 function drawChart() {
+
     var data = new google.visualization.DataTable();
     data.addColumn('datetime', 'UNIX');
-    data.addColumn('number', 'Temperature');
+    data.addColumn('number', 'Grzejnik');
+
 
     data.addRows(dataArray);
 
     var options = {
+
+        title:  dataArray[dataArray.length-1,1][1] +  ' C',
         curveType: 'function',
 
         height: 360,
-
-        legend: { position: 'none' },
 
         hAxis: {
             viewWindow: {
@@ -97,11 +128,11 @@ function drawChart() {
             }
         },
         vAxis: {
-            title: "Temperature (Celsius)"
+            title: "Temperatura (Celsius)"
         }
     };
 
-    var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+    var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
 
     chart.draw(data, options);
 
@@ -167,4 +198,3 @@ function getViewportWidthTime() {
     return defaultZoomTime*(2**zoomLevel); // exponential relation between zoom level and zoom time span
                                            // every time you zoom, you double or halve the time scale
 }
-

@@ -2,7 +2,8 @@
 <html>
 
 <head>
-    <title>ESP8266 Temperature Logger</title>
+    <title>ESP8266 Temperatury w domu</title>
+    <link href='main.css' rel='stylesheet' type='text/css'>
     <link href='https://fonts.googleapis.com/css?family=Roboto:300' rel='stylesheet' type='text/css'>
     <link rel="icon" type="image/png" sizes="144x144" href="/favicon-144x144.png">
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.ico">
@@ -13,8 +14,10 @@
 </head>
 
 <body>
+
+
     <center>
-        <h1>ESP8266 Temperature Logger</h1>
+    <div id="current_temperature"></div>
 		<div id="chart_div"></div>
 		<div id="loading">Loading ...</div>
         <div id="dateselect" style="visibility: hidden;">
@@ -29,6 +32,7 @@
     </center>
 
     <script src="temperatureGraph.js"></script>
+    <script src="webClient.js"></script>
 
     <style>
 	body {

@@ -1,0 +1,87 @@
+.bcolor
+{
+  color: rgb(96,96,96);
+}
+
+.body 
+{
+	
+	background: url(img/cat.png) top center/cover #262626;	
+}
+
+
+.info
+{
+	font-size:75%;
+	font-color: red;	
+}
+.small
+{
+	font-size:125%;
+	font-family: 'Black Ops One', sans-serif;
+	
+	color: #812323;
+	margin: 0px auto 10px 0px; 
+}
+
+
+.small_pass
+{
+	font-size:110%;
+	font-family: 'Black Ops One', sans-serif;
+	text-transform: lowercase;
+	color: #812323;
+	margin: 0px auto 10px 0px; 
+	width: 180px;
+}
+
+.container 
+{
+	width: 450px;
+	margin: 30px auto; 
+	float:center;
+	background-color: #0d0020;	
+	
+	border-top:  10px solid #0d0020;
+	border-bottom:  solid #0d0020;
+	
+	-moz-border-radius: 5px;
+	border-radius: 5px; 
+}
+
+.h1
+{
+	padding: 10px;
+}
+
+.flagi
+{
+	text-align: center;
+	-moz-border-radius: 5px;
+	border-radius: 5px; 
+	opacity: 0.9;
+}
+
+.firma 
+{
+	margin: 5px 10px 10px;
+	
+	
+	font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+	font-size:120%;
+	text-align: center;
+	transform: rotate(2.5deg) translate3d(0,0,0);
+
+	-moz-border-radius: 5px;
+	border-radius: 5px; 
+	
+	opacity: 0.9;
+}
+
+.lista
+{
+    text-align: left;
+    font-type: italic;
+};
+
+

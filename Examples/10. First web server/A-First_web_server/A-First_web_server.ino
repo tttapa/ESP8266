@@ -4,7 +4,7 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>   // Include the WebServer library
 
-ESP8266WiFiMulti wifiMulti;     // Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'
+ESP8266WiFiMulti wifiMulti;     // Create an instance of the ESP8266WiFiMulti class, called 'wifiMulti'//to acess multiple wifi
 
 ESP8266WebServer server(80);    // Create a webserver object that listens for HTTP request on port 80
 

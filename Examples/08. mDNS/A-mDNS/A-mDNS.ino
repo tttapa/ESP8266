@@ -31,4 +31,6 @@ void setup() {
   Serial.println("mDNS responder started");
 }
 
-void loop() { }
+void loop() {
+  MDNS.update(); // Allow MDNS processing
+}

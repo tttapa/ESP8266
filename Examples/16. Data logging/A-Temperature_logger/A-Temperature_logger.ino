@@ -86,6 +86,8 @@ const unsigned long DS_delay = 750;         // Reading the temperature from the 
 uint32_t timeUNIX = 0;                      // The most recent timestamp received from the time server
 
 void loop() {
+  MDNS.update();
+
   unsigned long currentMillis = millis();
 
   if (currentMillis - prevNTP > intervalNTP) { // Request the time from the time server every hour

@@ -48,6 +48,7 @@ void setup(void){
 }
 
 void loop(void){
+  MDNS.update();
   server.handleClient();                     // Listen for HTTP requests from clients
 }
 
